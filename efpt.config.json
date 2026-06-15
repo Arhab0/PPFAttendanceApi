@@ -1,0 +1,118 @@
+﻿{
+   "CodeGenerationMode": 4,
+   "ContextClassName": "ppfdbContext",
+   "ContextNamespace": null,
+   "FilterSchemas": false,
+   "IncludeConnectionString": false,
+   "IrregularWords": null,
+   "MinimumProductVersion": "2.6.1604",
+   "ModelNamespace": null,
+   "OutputContextPath": null,
+   "OutputPath": "Models",
+   "PluralRules": null,
+   "PreserveCasingWithRegex": true,
+   "ProjectRootNamespace": "PPFAttendanceApi",
+   "Schemas": null,
+   "SelectedHandlebarsLanguage": 2,
+   "SelectedToBeGenerated": 0,
+   "SingularRules": null,
+   "T4TemplatePath": null,
+   "Tables": [
+      {
+         "Name": "logs.activity_log",
+         "ObjectType": 0
+      },
+      {
+         "Name": "logs.attendance_log",
+         "ObjectType": 0
+      },
+      {
+         "Name": "logs.device_session",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.branch",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.department",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.emp_user_branch_mapping",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.emp_user_department_mapping",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.employees",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.role",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.user",
+         "ObjectType": 0
+      },
+      {
+         "Name": "media.employee_file",
+         "ObjectType": 0
+      },
+      {
+         "Name": "media.user_file",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.locations",
+         "ObjectType": 0
+      },
+      {
+         "Name": "utils.attendance_status",
+         "ObjectType": 0
+      },
+      {
+         "Name": "utils.employee_type",
+         "ObjectType": 0
+      },
+      {
+         "Name": "utils.payment_type",
+         "ObjectType": 0
+      },
+      {
+         "Name": "utils.shift_type",
+         "ObjectType": 0
+      }
+   ],
+   "UiHint": null,
+   "UncountableWords": null,
+   "UseAsyncStoredProcedureCalls": true,
+   "UseBoolPropertiesWithoutDefaultSql": false,
+   "UseDatabaseNames": false,
+   "UseDatabaseNamesForRoutines": true,
+   "UseDateOnlyTimeOnly": true,
+   "UseDbContextSplitting": false,
+   "UseDecimalDataAnnotationForSprocResult": true,
+   "UseFluentApiOnly": true,
+   "UseHandleBars": false,
+   "UseHierarchyId": false,
+   "UseInflector": true,
+   "UseInternalAccessModifiersForSprocsAndFunctions": false,
+   "UseLegacyPluralizer": false,
+   "UseManyToManyEntity": false,
+   "UseNoDefaultConstructor": false,
+   "UseNoNavigations": false,
+   "UseNoObjectFilter": false,
+   "UseNodaTime": false,
+   "UseNullableReferences": false,
+   "UsePrefixNavigationNaming": false,
+   "UseSchemaFolders": false,
+   "UseSchemaNamespaces": false,
+   "UseSpatial": false,
+   "UseT4": false,
+   "UseT4Split": false,
+   "UseTypedTvpParameters": true
+}

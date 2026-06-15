@@ -1,0 +1,83 @@
+## .NET / C# ##
+
+# Build output
+bin/
+obj/
+out/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# .NET 10 / MSBuild
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.dbmdl
+*.jfm
+.vs/
+.vscode/
+.idea/
+
+# Publish output
+publish/
+**/publish/
+*.pubxml
+*.pubxml.user
+
+# Secrets (never commit these)
+secrets.json
+**/secrets.json
+*.pfx
+*.p12
+*.pem
+*.key
+
+# Entity Framework Core migrations (keep if you version migrations)
+# Migrations/
+
+# Test results
+TestResults/
+coverage/
+*.trx
+*.coveragexml
+*.coverage
+
+# Logs
+logs/
+*.log
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Docker
+.dockerignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Azure / deployment
+.azure/
+*.PublishSettings
