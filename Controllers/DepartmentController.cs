@@ -116,6 +116,72 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
+        [HttpGet("GetParentDepartments")]
+        public async Task<IActionResult> GetParentDepartments()
+        {
+            try
+            {
+                var departments = await db.Departments.AsNoTracking().Where(x => x.ParentDepartmentId == null && x.IsActive == true)
+                     .Select(d => new
+                     {
+                         d.DepartmentId,
+                         d.DepartmentName,
+                         d.ParentDepartmentId,
+
+                         ParentDepartmentName = d.ParentDepartment != null
+                             ? d.ParentDepartment.DepartmentName
+                             : null,
+
+                         d.BranchId,
+                         d.Branch.BranchName,
+
+                         TotalCount = d.EmpUserBrDeptMappings.Count(m =>
+                             (m.EmployeeId != null && m.Employee.IsActive) ||
+                             (m.UserId != null && m.User.IsActive))
+                     })
+                     .ToListAsync();
+
+                return Ok(new { statusCode = 200, departments });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Failed to fetch department", error = ex.Message });
+            }
+        }
+
+        [HttpGet("GetSubDepartmentsByParentId")]
+        public async Task<IActionResult> GetSubDepartmentsByParentId(int parentId)
+        {
+            try
+            {
+                var departments = await db.Departments.AsNoTracking().Where(x=>x.ParentDepartmentId == parentId && x.IsActive == true)
+                    .Select(d => new
+                    {
+                        d.DepartmentId,
+                        d.DepartmentName,
+                        d.ParentDepartmentId,
+
+                        ParentDepartmentName = d.ParentDepartment != null
+                            ? d.ParentDepartment.DepartmentName
+                            : null,
+
+                        d.BranchId,
+                        d.Branch.BranchName,
+
+                        TotalCount = d.EmpUserBrDeptMappings.Count(m =>
+                            (m.EmployeeId != null && m.Employee.IsActive) ||
+                            (m.UserId != null && m.User.IsActive))
+                    })
+                    .ToListAsync();
+
+                return Ok(new { statusCode = 200, departments });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Failed to fetch department", error = ex.Message });
+            }
+        }
+
         [HttpGet("GetDepartmentByBranchId")]
         public async Task<IActionResult> GetDepartmentByBranchId(int branchId)
         {
@@ -137,14 +203,35 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var departments = await db.Departments.Include(x => x.ParentDepartment).Include(x => x.Branch)
-                    .Select(d => new { d.DepartmentId, d.DepartmentName, d.ParentDepartmentId, ParentDepartmentName = d.ParentDepartment.DepartmentName, d.BranchId, d.Branch.BranchName })
+                var departments = await db.Departments.Where(x=>x.IsActive == true)
+                    .Select(d => new
+                    {
+                        d.DepartmentId,
+                        d.DepartmentName,
+                        d.ParentDepartmentId,
+
+                        ParentDepartmentName = d.ParentDepartment != null
+                            ? d.ParentDepartment.DepartmentName
+                            : null,
+
+                        d.BranchId,
+                        d.Branch.BranchName,
+
+                        TotalCount = d.EmpUserBrDeptMappings.Count(m =>
+                            (m.EmployeeId != null && m.Employee.IsActive) ||
+                            (m.UserId != null && m.User.IsActive))
+                    })
                     .ToListAsync();
+
                 return Ok(new { statusCode = 200, departments });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = "Failed to fetch departments", error = ex.Message });
+                return BadRequest(new
+                {
+                    message = "Failed to fetch departments",
+                    error = ex.Message
+                });
             }
         }
 
@@ -153,7 +240,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var empids = await db.EmpUserDepartmentMappings.Where(x => x.DepartmentId == departmentId && x.Employee.IsActive == true).Select(x => x.EmployeeId).ToListAsync();
+                var empids = await db.EmpUserBrDeptMappings.Where(x => x.DepartmentId == departmentId && x.Employee.IsActive == true).Select(x => x.EmployeeId).ToListAsync();
 
                 var data = await db.Employees.AsNoTracking().Where(x => empids.Contains(x.EmployeeId))
                             .Include(x => x.EmployeeType)
@@ -192,7 +279,7 @@ namespace PPFAttendanceApi.Controllers
             try
             {
                 var check1 = await db.Departments.Where(x => x.ParentDepartmentId == departmentId && x.IsActive == true).CountAsync();
-                var check2 = await db.EmpUserDepartmentMappings.Where(x => x.DepartmentId == departmentId && (x.Employee.IsActive == true || x.User.IsActive == true)).CountAsync();
+                var check2 = await db.EmpUserBrDeptMappings.Where(x => x.DepartmentId == departmentId && (x.Employee.IsActive == true || x.User.IsActive == true)).CountAsync();
                 
                 if(check1 > 0)
                 {

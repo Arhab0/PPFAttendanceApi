@@ -43,9 +43,7 @@ public partial class Employee
 
     public virtual ICollection<DeviceSession> DeviceSessions { get; set; } = new List<DeviceSession>();
 
-    public virtual ICollection<EmpUserBranchMapping> EmpUserBranchMappings { get; set; } = new List<EmpUserBranchMapping>();
-
-    public virtual ICollection<EmpUserDepartmentMapping> EmpUserDepartmentMappings { get; set; } = new List<EmpUserDepartmentMapping>();
+    public virtual ICollection<EmpUserBrDeptMapping> EmpUserBrDeptMappings { get; set; } = new List<EmpUserBrDeptMapping>();
 
     public virtual ICollection<EmployeeFile> EmployeeFiles { get; set; } = new List<EmployeeFile>();
 

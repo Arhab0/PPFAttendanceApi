@@ -30,17 +30,24 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest(new { message = "Employee with this Email already exists." });
                 }
 
-                if (dto.BranchIds.Count == 0 || dto.DepartmentIds.Count == 0)
+                if (dto.BrDeptMapping.Count == 0)
                 {
                     return BadRequest(new { statusCode = 400, message = "Required entries are missing." });
                 }
 
+                var employeeCodeCheck = await db.Employees.AnyAsync(e => e.EmployeeCode == "EMP-" + dto.EmployeeId.ToString());
+
+                if (employeeCodeCheck)
+                {
+                    return BadRequest(new { message = "Employee with this EmployeeCode already exists." });
+                }
 
                 var password = Security.Encrypt(dto.Password);
                 var employee = new Employee
                 {
                     EmployeeName = dto.Name,
                     EmployeeFatherName = dto.FatherName,
+                    EmployeeCode = "EMP-" + dto.EmployeeId.ToString(),
                     Cnic = dto.Cnic,
                     JobTitle = dto.JobTitle,
                     MobileNumber = dto.MobileNumber,
@@ -56,33 +63,35 @@ namespace PPFAttendanceApi.Controllers
                 db.Employees.Add(employee);
                 await db.SaveChangesAsync();
 
-                string employeeCount = db.Employees.Count().ToString("D4");
-                employee.EmployeeCode = $"EMP-{employeeCount}";
-
                 List<Location> locations = new();
-                List<EmpUserBranchMapping> employeeBranchMappings = new();
-                List<EmpUserDepartmentMapping> employeeDepartmentMappings = new();
+                List<EmpUserBrDeptMapping> employeeBrDeptMappings = new();
 
-                var branches = await db.Branches.Where(b => dto.BranchIds.Contains(b.BranchId)).Select(x => new { x.BranchName, x.Latitude, x.Longitude, x.Radius }).ToListAsync();
+                var branchIds = dto.BrDeptMapping
+                                .Select(x => x.BranchId)
+                                .Distinct()
+                                .ToList();
 
-                foreach (var branchId in dto.BranchIds)
+                var branches = await db.Branches
+                    .Where(b => branchIds.Contains(b.BranchId))
+                    .Select(x => new
+                    {
+                        x.BranchId,
+                        x.BranchName,
+                        x.Latitude,
+                        x.Longitude,
+                        x.Radius
+                    })
+                    .ToListAsync();
+
+                foreach (var item in dto.BrDeptMapping)
                 {
-                    EmpUserBranchMapping mapping = new()
+                    EmpUserBrDeptMapping mapping = new()
                     {
                         EmployeeId = employee.EmployeeId,
-                        BranchId = branchId
+                        BranchId = item.BranchId,
+                        DepartmentId = item.DepartmentId
                     };
-                    employeeBranchMappings.Add(mapping);
-                }
-
-                foreach (var departmentId in dto.DepartmentIds)
-                {
-                    EmpUserDepartmentMapping mapping = new()
-                    {
-                        EmployeeId = employee.EmployeeId,
-                        DepartmentId = departmentId
-                    };
-                    employeeDepartmentMappings.Add(mapping);
+                    employeeBrDeptMappings.Add(mapping);
                 }
 
                 foreach (var item in branches)
@@ -99,8 +108,7 @@ namespace PPFAttendanceApi.Controllers
                     locations.Add(location);
                 }
 
-                await db.EmpUserBranchMappings.AddRangeAsync(employeeBranchMappings);
-                await db.EmpUserDepartmentMappings.AddRangeAsync(employeeDepartmentMappings);
+                await db.EmpUserBrDeptMappings.AddRangeAsync(employeeBrDeptMappings);
                 await db.Locations.AddRangeAsync(locations);
                 await db.SaveChangesAsync();
 
@@ -135,7 +143,7 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest(new { statusCode = 400, message = "Employee with this Email already exists." });
                 }
 
-                if (dto.BranchIds.Count == 0 || dto.DepartmentIds.Count == 0)
+                if (dto.BrDeptMapping.Count == 0)
                 {
                     return BadRequest(new { statusCode = 400, message = "Required entries are missing." });
                 }
@@ -160,33 +168,22 @@ namespace PPFAttendanceApi.Controllers
                     employee.EmployeePassword = password;
                 }
 
-                await db.EmpUserDepartmentMappings.Where(x => x.EmployeeId == dto.sid).ExecuteDeleteAsync();
-                await db.EmpUserBranchMappings.Where(x => x.EmployeeId == dto.sid).ExecuteDeleteAsync();
+                await db.EmpUserBrDeptMappings.Where(x => x.EmployeeId == dto.sid).ExecuteDeleteAsync();
 
                 List<Location> locations = new();
-                List<EmpUserBranchMapping> employeeBranchMappings = new();
-                List<EmpUserDepartmentMapping> employeeDepartmentMappings = new();
+                List<EmpUserBrDeptMapping> employeeBrDeptMappings = new();
 
-                var branches = await db.Branches.Where(b => dto.BranchIds.Contains(b.BranchId)).Select(x => new { x.BranchName, x.Latitude, x.Longitude, x.Radius }).ToListAsync();
+                var branches = await db.Branches.Where(b => dto.BrDeptMapping.Select(i => i.BranchId).ToList().Contains(b.BranchId)).Select(x => new { x.BranchName, x.Latitude, x.Longitude, x.Radius }).ToListAsync();
 
-                foreach (var branchId in dto.BranchIds)
+                foreach (var item in dto.BrDeptMapping)
                 {
-                    EmpUserBranchMapping mapping = new()
+                    EmpUserBrDeptMapping mapping = new()
                     {
                         EmployeeId = employee.EmployeeId,
-                        BranchId = branchId
+                        BranchId = item.BranchId,
+                        DepartmentId = item.DepartmentId
                     };
-                    employeeBranchMappings.Add(mapping);
-                }
-
-                foreach (var departmentId in dto.DepartmentIds)
-                {
-                    EmpUserDepartmentMapping mapping = new()
-                    {
-                        EmployeeId = employee.EmployeeId,
-                        DepartmentId = departmentId
-                    };
-                    employeeDepartmentMappings.Add(mapping);
+                    employeeBrDeptMappings.Add(mapping);
                 }
 
                 foreach (var item in branches)
@@ -203,8 +200,7 @@ namespace PPFAttendanceApi.Controllers
                     locations.Add(location);
                 }
 
-                await db.EmpUserBranchMappings.AddRangeAsync(employeeBranchMappings);
-                await db.EmpUserDepartmentMappings.AddRangeAsync(employeeDepartmentMappings);
+                await db.EmpUserBrDeptMappings.AddRangeAsync(employeeBrDeptMappings);
                 await db.Locations.AddRangeAsync(locations);
                 await db.SaveChangesAsync();
 
@@ -224,8 +220,7 @@ namespace PPFAttendanceApi.Controllers
             try
             {
                 var data = await db.Employees.AsNoTracking()
-                            .Include(x => x.EmpUserBranchMappings).ThenInclude(x => x.Branch)
-                            .Include(x => x.EmpUserDepartmentMappings).ThenInclude(x => x.Department)
+                            .Include(x => x.EmpUserBrDeptMappings)
                             .Include(x => x.EmployeeType)
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
@@ -246,10 +241,9 @@ namespace PPFAttendanceApi.Controllers
                                 ShiftType = x.ShiftType.Type,
                                 x.PaymentTypeId,
                                 PaymentType = x.PaymentType.Type,
-                                Branches = x.EmpUserBranchMappings.Select(b => new { b.BranchId, b.Branch.BranchName }),
-                                Departments = x.EmpUserDepartmentMappings.Select(d => new { d.DepartmentId, d.Department.DepartmentName })
-                            })
-                            .ToListAsync();
+                                mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName }).ToList()
+                            }).ToListAsync();
+
                 return Json(data);
             }
             catch (Exception e)
@@ -265,8 +259,7 @@ namespace PPFAttendanceApi.Controllers
             {
                 var data = await db.Employees.AsNoTracking()
                             .Where(x => x.EmployeeId == employeeId)
-                            .Include(x => x.EmpUserBranchMappings).ThenInclude(x => x.Branch)
-                            .Include(x => x.EmpUserDepartmentMappings).ThenInclude(x => x.Department)
+                            .Include(x => x.EmpUserBrDeptMappings)
                             .Include(x => x.EmployeeType)
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
@@ -287,8 +280,7 @@ namespace PPFAttendanceApi.Controllers
                                 ShiftType = x.ShiftType.Type,
                                 x.PaymentTypeId,
                                 PaymentType = x.PaymentType.Type,
-                                Branches = x.EmpUserBranchMappings.Select(b => new { b.BranchId, b.Branch.BranchName }),
-                                Departments = x.EmpUserDepartmentMappings.Select(d => new { d.DepartmentId, d.Department.DepartmentName })
+                                mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName }).ToList()
                             })
                             .FirstOrDefaultAsync();
 

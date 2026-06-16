@@ -10,8 +10,7 @@ namespace PPFAttendanceApi.Dto
         public FileDto File { get; set; }
         public List<UserLocationDto> Locations_ { get; set; } = new List<UserLocationDto>();
         public List<RegisteredEmployeesData>? Employees { get; set; } = new List<RegisteredEmployeesData>();
-        public List<UserBranches>? BranchDetails { get; set; } = new List<UserBranches>();
-        public List<UserDepartments>? DepartmentDetails { get; set; } = new List<UserDepartments>();
+        public List<BranchDeptMapping> mapping { get; set; } = new();
     }
     public class FileDto
     {
@@ -22,7 +21,7 @@ namespace PPFAttendanceApi.Dto
     }
     public class UserLocationDto
     {
-        public int LocationId {  get; set; }
+        public int LocationId { get; set; }
         public string Latitude { get; set; }
         public string Longitude { get; set; }
         public string LocationType { get; set; }
@@ -41,19 +40,15 @@ namespace PPFAttendanceApi.Dto
         public string DepartmentName { get; set; }
         public FileDto File { get; set; }
         public List<UserLocationDto> Locations_ { get; set; } = new List<UserLocationDto>();
-        public List<UserBranches>? BranchDetails { get; set; } = new List<UserBranches>();
-        public List<UserDepartments>? DepartmentDetails { get; set; } = new List<UserDepartments>();
+        public List<BranchDeptMapping> mapping { get; set; } = new();
     }
 
-    public class UserBranches
+    public class BranchDeptMapping
     {
+        public int MappingId { get; set; }
         public int BranchId { get; set; }
         public string BranchName { get; set; }
-    }
-
-    public class UserDepartments
-    {
-        public int DepartmentId { get; set; }
-        public string DepartmentName { get; set; }
+        public int? DepartmentId { get; set; }
+        public string? DepartmentName { get; set; }
     }
 }

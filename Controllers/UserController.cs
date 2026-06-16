@@ -99,21 +99,36 @@ namespace PPFAttendanceApi.Controllers
                     await db.SaveChangesAsync();
 
                     List<Location> locations = new();
-                    List<EmpUserBranchMapping> employeeBranchMappings = new();
-                    List<EmpUserDepartmentMapping> employeeDepartmentMappings = new();
+                    List<EmpUserBrDeptMapping> employeeBrDeptMappings = new();
 
-                    if (userDto.BranchIds.Count > 0)
+                    if (userDto.BrDeptMapping.Count > 0)
                     {
-                        var branches = await db.Branches.Where(b => userDto.BranchIds.Contains(b.BranchId)).Select(x => new { x.BranchName, x.Latitude, x.Longitude, x.Radius }).ToListAsync();
+                        var branchIds = userDto.BrDeptMapping
+                                         .Select(x => x.BranchId)
+                                         .Distinct()
+                                         .ToList();
 
-                        foreach (var branchId in userDto.BranchIds)
+                        var branches = await db.Branches
+                            .Where(b => branchIds.Contains(b.BranchId))
+                            .Select(x => new
+                            {
+                                x.BranchId,
+                                x.BranchName,
+                                x.Latitude,
+                                x.Longitude,
+                                x.Radius
+                            })
+                            .ToListAsync();
+
+                        foreach (var item in userDto.BrDeptMapping)
                         {
-                            EmpUserBranchMapping mapping = new()
+                            EmpUserBrDeptMapping mapping = new()
                             {
                                 UserId = user.UserId,
-                                BranchId = branchId
+                                BranchId = item.BranchId,
+                                DepartmentId = item.DepartmentId
                             };
-                            employeeBranchMappings.Add(mapping);
+                            employeeBrDeptMappings.Add(mapping);
                         }
 
                         foreach (var item in branches)
@@ -129,22 +144,9 @@ namespace PPFAttendanceApi.Controllers
                             };
                             locations.Add(location);
                         }
-                        await db.EmpUserBranchMappings.AddRangeAsync(employeeBranchMappings);
-                        await db.Locations.AddRangeAsync(locations);
-                    }
 
-                    if (userDto.DepartmentIds.Count > 0)
-                    {
-                        foreach (var departmentId in userDto.DepartmentIds)
-                        {
-                            EmpUserDepartmentMapping mapping = new()
-                            {
-                                UserId = user.UserId,
-                                DepartmentId = departmentId,
-                            };
-                            employeeDepartmentMappings.Add(mapping);
-                        }
-                        await db.EmpUserDepartmentMappings.AddRangeAsync(employeeDepartmentMappings);
+                        await db.EmpUserBrDeptMappings.AddRangeAsync(employeeBrDeptMappings);
+                        await db.Locations.AddRangeAsync(locations);
                     }
 
                     log.CreatedById = sid;

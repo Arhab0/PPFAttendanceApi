@@ -67,19 +67,13 @@ namespace PPFAttendanceApi.Controllers
                 var e = await db.Employees
                     .Include(x => x.Role)
                     .Include(x => x.EmployeeFiles)
-                    .Include(x => x.EmpUserDepartmentMappings)
-                        .ThenInclude(edm => edm.Department)
-                    .Include(x=>x.EmpUserBranchMappings)
-                        .ThenInclude(ebm => ebm.Branch)
+                    .Include(x => x.EmpUserBrDeptMappings)
                     .Where(x => x.EmployeeEmail.ToLower() == dto.Email.ToLower() && x.EmployeePassword == encrypt &&
                                 x.IsActive == true).FirstOrDefaultAsync();
 
                 var m = await db.Users
                     .Include(x => x.Role)
-                    .Include(x => x.EmpUserDepartmentMappings)
-                        .ThenInclude(edm => edm.Department)
-                    .Include(x => x.EmpUserBranchMappings)
-                        .ThenInclude(ebm => ebm.Branch)
+                    .Include(x => x.EmpUserBrDeptMappings)
                     .Include(x => x.UserFiles)
                     .Where(x => x.UserEmail.ToLower() == dto.Email.ToLower() && x.UserPassword == encrypt && x.IsActive == true).FirstOrDefaultAsync();
 
@@ -115,8 +109,7 @@ namespace PPFAttendanceApi.Controllers
                     obj.Email = e.EmployeeEmail;
                     obj.RoleId = e.RoleId;
                     obj.RoleName = e.Role.RoleName;
-                    obj.BranchDetails = e.EmpUserBranchMappings.Select(x => new UserBranches { BranchId = x.BranchId, BranchName = x.Branch.BranchName }).ToList();
-                    obj.DepartmentDetails = e.EmpUserDepartmentMappings.Select(x => new UserDepartments { DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
+                    obj.mapping = e.EmpUserBrDeptMappings.Select(x => new BranchDeptMapping { MappingId = x.BrDeptMappingId, BranchId = x.BranchId, BranchName = x.Branch.BranchName, DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
 
                     var eFile = e.EmployeeFiles?.FirstOrDefault();
                     obj.File = eFile == null ? null : new()
@@ -165,8 +158,7 @@ namespace PPFAttendanceApi.Controllers
                 obj.Email = m.UserEmail;
                 obj.RoleId = m.RoleId;
                 obj.RoleName = m.Role.RoleName;
-                obj.BranchDetails = m.EmpUserBranchMappings.Select(x => new UserBranches { BranchId = x.BranchId, BranchName = x.Branch.BranchName }).ToList();
-                obj.DepartmentDetails = m.EmpUserDepartmentMappings.Select(x => new UserDepartments { DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
+                obj.mapping = m.EmpUserBrDeptMappings.Select(x => new BranchDeptMapping { MappingId = x.BrDeptMappingId, BranchId = x.BranchId, BranchName = x.Branch.BranchName, DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
                 //obj.DepartmentId = m.DepartmentId ?? 0;
                 //obj.DepartmentName = m.Department.DepartmentName;
 
@@ -192,12 +184,8 @@ namespace PPFAttendanceApi.Controllers
                 {
                     obj.Employees = db.Employees
                         .AsNoTracking()
-                        .Include(x => x.EmpUserDepartmentMappings)
-                            .ThenInclude(edm => edm.Department)
-                        .Include(x => x.EmpUserBranchMappings)
-                            .ThenInclude(ebm => ebm.Branch)
-                        .Include(x=>x.Role)
-                        .Include(x=> x.Locations)
+                        .Include(x => x.Role)
+                        .Include(x => x.Locations)
                         .Where(e => e.IsActive == true).Select(x => new RegisteredEmployeesData()
                         {
 

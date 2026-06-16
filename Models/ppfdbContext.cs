@@ -25,9 +25,7 @@ public partial class ppfdbContext : DbContext
 
     public virtual DbSet<DeviceSession> DeviceSessions { get; set; }
 
-    public virtual DbSet<EmpUserBranchMapping> EmpUserBranchMappings { get; set; }
-
-    public virtual DbSet<EmpUserDepartmentMapping> EmpUserDepartmentMappings { get; set; }
+    public virtual DbSet<EmpUserBrDeptMapping> EmpUserBrDeptMappings { get; set; }
 
     public virtual DbSet<Employee> Employees { get; set; }
 
@@ -303,56 +301,34 @@ public partial class ppfdbContext : DbContext
                 .HasConstraintName("userSession_manager_key");
         });
 
-        modelBuilder.Entity<EmpUserBranchMapping>(entity =>
+        modelBuilder.Entity<EmpUserBrDeptMapping>(entity =>
         {
-            entity.HasKey(e => e.BranchMappingId).HasName("branch_mapping_pkey");
+            entity.HasKey(e => e.BrDeptMappingId).HasName("br_dept_mapping_pkey");
 
-            entity.ToTable("emp_user_branch_mapping", "master");
+            entity.ToTable("emp_user_br_dept_mapping", "master");
 
-            entity.Property(e => e.BranchMappingId)
-                .HasDefaultValueSql("nextval('master.employee_branch_mapping_employee_branch_mapping_id_seq'::regclass)")
-                .HasColumnName("branch_mapping_id");
-            entity.Property(e => e.BranchId).HasColumnName("branch_id");
-            entity.Property(e => e.EmployeeId).HasColumnName("employee_id");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
-
-            entity.HasOne(d => d.Branch).WithMany(p => p.EmpUserBranchMappings)
-                .HasForeignKey(d => d.BranchId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("mapping_branch_key");
-
-            entity.HasOne(d => d.Employee).WithMany(p => p.EmpUserBranchMappings)
-                .HasForeignKey(d => d.EmployeeId)
-                .HasConstraintName("mapping_employee_key");
-
-            entity.HasOne(d => d.User).WithMany(p => p.EmpUserBranchMappings)
-                .HasForeignKey(d => d.UserId)
-                .HasConstraintName("mapping_user_key");
-        });
-
-        modelBuilder.Entity<EmpUserDepartmentMapping>(entity =>
-        {
-            entity.HasKey(e => e.DepartmentMappingId).HasName("department_mapping_pkey");
-
-            entity.ToTable("emp_user_department_mapping", "master");
-
-            entity.Property(e => e.DepartmentMappingId)
+            entity.Property(e => e.BrDeptMappingId)
                 .HasDefaultValueSql("nextval('master.employee_department_mapping_employee_department_mapping_id_seq'::regclass)")
-                .HasColumnName("department_mapping_id");
+                .HasColumnName("br_dept_mapping_id");
+            entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.DepartmentId).HasColumnName("department_id");
             entity.Property(e => e.EmployeeId).HasColumnName("employee_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.Department).WithMany(p => p.EmpUserDepartmentMappings)
-                .HasForeignKey(d => d.DepartmentId)
+            entity.HasOne(d => d.Branch).WithMany(p => p.EmpUserBrDeptMappings)
+                .HasForeignKey(d => d.BranchId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("mapping_branch_key");
+
+            entity.HasOne(d => d.Department).WithMany(p => p.EmpUserBrDeptMappings)
+                .HasForeignKey(d => d.DepartmentId)
                 .HasConstraintName("mapping_department_key");
 
-            entity.HasOne(d => d.Employee).WithMany(p => p.EmpUserDepartmentMappings)
+            entity.HasOne(d => d.Employee).WithMany(p => p.EmpUserBrDeptMappings)
                 .HasForeignKey(d => d.EmployeeId)
                 .HasConstraintName("mapping_employee_key");
 
-            entity.HasOne(d => d.User).WithMany(p => p.EmpUserDepartmentMappings)
+            entity.HasOne(d => d.User).WithMany(p => p.EmpUserBrDeptMappings)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("mapping_user_key");
         });

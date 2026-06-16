@@ -29,5 +29,5 @@ public partial class Branch
 
     public virtual ICollection<Department> Departments { get; set; } = new List<Department>();
 
-    public virtual ICollection<EmpUserBranchMapping> EmpUserBranchMappings { get; set; } = new List<EmpUserBranchMapping>();
+    public virtual ICollection<EmpUserBrDeptMapping> EmpUserBrDeptMappings { get; set; } = new List<EmpUserBrDeptMapping>();
 }

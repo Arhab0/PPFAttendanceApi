@@ -87,7 +87,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var branches = await db.Branches.Include(x => x.CreatedByNavigation).Select(x => new
+                var branches = await db.Branches.Include(x => x.CreatedByNavigation).Where(x=>x.IsActive == true).Select(x => new
                 {
                     x.BranchId,
                     x.BranchName,
@@ -95,7 +95,8 @@ namespace PPFAttendanceApi.Controllers
                     x.CreatedAt,
                     x.Latitude,
                     x.Longitude,
-                    x.IsActive
+                    x.IsActive,
+                    TotalCount = x.EmpUserBrDeptMappings.Count(m => (m.EmployeeId != null && m.Employee.IsActive == true) || (m.UserId != null && m.User.IsActive == true))
                 }).ToListAsync();
                 return Ok(new { statusCode = 200, branches });
             }
@@ -110,7 +111,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var branches = await db.Branches.Where(x => x.BranchId == branchId).Include(x => x.CreatedByNavigation).Select(x => new
+                var branches = await db.Branches.Where(x => x.BranchId == branchId).Select(x => new
                 {
                     x.BranchId,
                     x.BranchName,
@@ -119,7 +120,7 @@ namespace PPFAttendanceApi.Controllers
                     x.CreatedAt,
                     x.Latitude,
                     x.Longitude,
-                    x.IsActive
+                    x.IsActive,
                 }).FirstOrDefaultAsync();
                 return Ok(new { statusCode = 200, branches });
             }
@@ -136,7 +137,7 @@ namespace PPFAttendanceApi.Controllers
             {
                 
                 var check1 = await db.Departments.Where(x=>x.BranchId == branchId && x.IsActive == true).CountAsync();
-                var check2 = await db.EmpUserBranchMappings.Where(x=> x.BranchId == branchId && (x.Employee.IsActive == true || x.User.IsActive == true)).CountAsync();
+                var check2 = await db.EmpUserBrDeptMappings.Where(x=> x.BranchId == branchId && (x.Employee.IsActive == true || x.User.IsActive == true)).CountAsync();
 
                 if(check1 > 0 || check2 > 0)
                 {
@@ -160,7 +161,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var empids = await db.EmpUserBranchMappings.Where(x => x. BranchId == branchId && x.Employee.IsActive == true).Select(x => x.EmployeeId).ToListAsync();
+                var empids = await db.EmpUserBrDeptMappings.Where(x => x. BranchId == branchId && x.Employee.IsActive == true).Select(x => x.EmployeeId).ToListAsync();
 
                 var data = await db.Employees.AsNoTracking().Where(x => empids.Contains(x.EmployeeId))
                             .Include(x => x.EmployeeType)

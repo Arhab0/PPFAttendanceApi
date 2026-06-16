@@ -5,17 +5,21 @@ using System.Collections.Generic;
 
 namespace PPFAttendanceApi.Models;
 
-public partial class EmpUserBranchMapping
+public partial class EmpUserBrDeptMapping
 {
-    public int BranchMappingId { get; set; }
+    public int BrDeptMappingId { get; set; }
 
     public int? EmployeeId { get; set; }
 
-    public int BranchId { get; set; }
+    public int? DepartmentId { get; set; }
 
     public int? UserId { get; set; }
 
+    public int BranchId { get; set; }
+
     public virtual Branch Branch { get; set; }
+
+    public virtual Department Department { get; set; }
 
     public virtual Employee Employee { get; set; }
 

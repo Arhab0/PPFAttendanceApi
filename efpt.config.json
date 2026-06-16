@@ -39,11 +39,7 @@
          "ObjectType": 0
       },
       {
-         "Name": "master.emp_user_branch_mapping",
-         "ObjectType": 0
-      },
-      {
-         "Name": "master.emp_user_department_mapping",
+         "Name": "master.emp_user_br_dept_mapping",
          "ObjectType": 0
       },
       {

@@ -3,6 +3,7 @@
     public class RegisterUserDto
     {
         public int? sid { get; set; }
+        public int EmployeeId { get; set; }
         public string Name { get; set; }
         public string? FatherName { get; set; }
         public string? Cnic { get; set; }
@@ -14,7 +15,12 @@
         public int? PaymentTypeId { get; set; }
         public int? ShiftTypeId { get; set; }
         public int EmployeeTypeId { get; set; }
-        public List<int>? BranchIds { get; set; } = new();
-        public List<int>? DepartmentIds { get; set; } = new();
+        public List<BranchDepartmentMappingDto> BrDeptMapping { get; set; } = new();
+    }
+
+    public class BranchDepartmentMappingDto
+    {
+        public int BranchId { get; set; } = new();
+        public int? DepartmentId { get; set; } = new();
     }
 }

@@ -25,7 +25,7 @@ public partial class Department
 
     public virtual Branch Branch { get; set; }
 
-    public virtual ICollection<EmpUserDepartmentMapping> EmpUserDepartmentMappings { get; set; } = new List<EmpUserDepartmentMapping>();
+    public virtual ICollection<EmpUserBrDeptMapping> EmpUserBrDeptMappings { get; set; } = new List<EmpUserBrDeptMapping>();
 
     public virtual ICollection<Department> InverseParentDepartment { get; set; } = new List<Department>();
 

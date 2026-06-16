@@ -29,9 +29,7 @@ public partial class User
 
     public virtual ICollection<DeviceSession> DeviceSessions { get; set; } = new List<DeviceSession>();
 
-    public virtual ICollection<EmpUserBranchMapping> EmpUserBranchMappings { get; set; } = new List<EmpUserBranchMapping>();
-
-    public virtual ICollection<EmpUserDepartmentMapping> EmpUserDepartmentMappings { get; set; } = new List<EmpUserDepartmentMapping>();
+    public virtual ICollection<EmpUserBrDeptMapping> EmpUserBrDeptMappings { get; set; } = new List<EmpUserBrDeptMapping>();
 
     public virtual ICollection<Location> Locations { get; set; } = new List<Location>();
 
