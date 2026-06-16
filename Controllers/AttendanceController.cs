@@ -64,9 +64,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Json(new { statusCode = 200, data = records });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { statusCode = 500, message = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -134,9 +134,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Json(new { statusCode = 200, data });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { statusCode = 500, message = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -487,7 +487,7 @@ namespace PPFAttendanceApi.Controllers
             catch (Exception ex)
             {
                 await db.Database.RollbackTransactionAsync();
-                return BadRequest(new { statusCode = 500, message = ex.Message });
+                return BadRequest(ex.Message);
             }
         }
     }

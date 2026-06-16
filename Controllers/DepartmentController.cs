@@ -46,9 +46,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Ok(new { statusCode = 200, message = "Department created successfully", departmentId = dept.DepartmentId });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to create department", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -89,9 +89,9 @@ namespace PPFAttendanceApi.Controllers
                 await db.SaveChangesAsync();
                 return Ok(new { statusCode = 200, message = "Department updated successfully" });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to update department", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -110,9 +110,9 @@ namespace PPFAttendanceApi.Controllers
                 }
                 return Ok(new { statusCode = 200, department = dept });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to fetch department", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -143,9 +143,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Ok(new { statusCode = 200, departments });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to fetch department", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -176,9 +176,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Ok(new { statusCode = 200, departments });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to fetch department", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -192,9 +192,9 @@ namespace PPFAttendanceApi.Controllers
                     .ToListAsync();
                 return Ok(new { statusCode = 200, departments });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to fetch departments", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -225,13 +225,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Ok(new { statusCode = 200, departments });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new
-                {
-                    message = "Failed to fetch departments",
-                    error = ex.Message
-                });
+                return BadRequest(e.Message);
             }
         }
 
@@ -267,9 +263,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Ok(new { statusCode = 200, data });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to fetch department members", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -296,9 +292,9 @@ namespace PPFAttendanceApi.Controllers
                 await db.SaveChangesAsync();
                 return Ok(new { statusCode = 200, message = "Department deactivated successfully" });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to deactivate department", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
     }

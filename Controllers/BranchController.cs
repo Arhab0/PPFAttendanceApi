@@ -45,9 +45,9 @@ namespace PPFAttendanceApi.Controllers
                 await db.SaveChangesAsync();
                 return Ok(new { statusCode = 200, message = "Branch added successfully" });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to add branch", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -76,9 +76,9 @@ namespace PPFAttendanceApi.Controllers
                 await db.SaveChangesAsync();
                 return Ok(new { statusCode = 200, message = "Branch updated successfully" });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to update branch", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -100,9 +100,9 @@ namespace PPFAttendanceApi.Controllers
                 }).ToListAsync();
                 return Ok(new { statusCode = 200, branches });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to retrieve branches", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -124,9 +124,9 @@ namespace PPFAttendanceApi.Controllers
                 }).FirstOrDefaultAsync();
                 return Ok(new { statusCode = 200, branches });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to retrieve branches", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -150,9 +150,9 @@ namespace PPFAttendanceApi.Controllers
                 await db.SaveChangesAsync();
                 return Ok(new { statusCode = 200, message = "Branch deactivated successfully" });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to deactivate branch", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -188,9 +188,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Ok(new { statusCode = 200, data });
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = "Failed to fetch branch members", error = ex.Message });
+                return BadRequest(e.Message);
             }
         }
     }

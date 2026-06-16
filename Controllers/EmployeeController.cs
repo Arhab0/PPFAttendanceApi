@@ -27,7 +27,7 @@ namespace PPFAttendanceApi.Controllers
 
                 if (await db.Employees.AnyAsync(e => e.EmployeeEmail.Trim() == dto.Email.Trim()))
                 {
-                    return BadRequest(new { message = "Employee with this Email already exists." });
+                    return BadRequest(new { statusCode = 400, message = "Employee with this Email already exists." });
                 }
 
                 if (dto.BrDeptMapping.Count == 0)
@@ -210,7 +210,7 @@ namespace PPFAttendanceApi.Controllers
             catch (Exception e)
             {
                 await db.Database.RollbackTransactionAsync();
-                return Json(e.Message);
+                return BadRequest(e.Message);
             }
         }
 

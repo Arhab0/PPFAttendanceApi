@@ -40,9 +40,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Ok(users);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(e.Message);
             }
         }
 
@@ -164,7 +164,7 @@ namespace PPFAttendanceApi.Controllers
             catch (Exception ex)
             {
                 await db.Database.RollbackTransactionAsync();
-                return Ok(new { statusCode = 500, message = $"An error occurred while creating the user", error = ex.Message });
+                return BadRequest(ex.Message);
             }
         }
 
@@ -198,7 +198,7 @@ namespace PPFAttendanceApi.Controllers
             catch (Exception ex)
             {
                 await db.Database.RollbackTransactionAsync();
-                return BadRequest(new { statusCode = 500, message = $"An error occurred while {(status == true ? "activating" : "deactivating")}", error = ex.Message });
+                return BadRequest(ex.Message);
             }
         }
     }

@@ -37,9 +37,9 @@ namespace PPFAttendanceApi.Controllers
 
                 return Json(deviceSessions);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                return BadRequest(new { statusCode = 500, message = "An error occurred while retrieving device sessions." });
+                return BadRequest(e.Message);
             }
         }
 
@@ -74,7 +74,7 @@ namespace PPFAttendanceApi.Controllers
             catch (Exception ex)
             {
                 await db.Database.RollbackTransactionAsync();
-                return BadRequest(new { statusCode = 500, message = "An error occurred while removing previous session." });
+                return BadRequest(ex.Message);
             }
         }
     }
