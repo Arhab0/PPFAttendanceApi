@@ -449,7 +449,11 @@ public partial class ppfdbContext : DbContext
             entity.ToTable("employee_type", "utils");
 
             entity.Property(e => e.EmployeeTypeId).HasColumnName("employee_type_id");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
             entity.Property(e => e.Type)
+                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("type");
         });
@@ -507,6 +511,9 @@ public partial class ppfdbContext : DbContext
             entity.ToTable("payment_type", "utils");
 
             entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
             entity.Property(e => e.Type)
                 .IsRequired()
                 .HasColumnType("character varying")
@@ -537,7 +544,11 @@ public partial class ppfdbContext : DbContext
             entity.ToTable("shift_type", "utils");
 
             entity.Property(e => e.ShiftTypeId).HasColumnName("shift_type_id");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
             entity.Property(e => e.Type)
+                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("type");
         });

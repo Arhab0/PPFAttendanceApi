@@ -24,7 +24,7 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest("Payment type already exists.");
                 }
 
-                await db.PaymentTypes.AddAsync(new PaymentType { Type = type });
+                await db.PaymentTypes.AddAsync(new PaymentType { Type = type, IsActive = true });
                 await db.SaveChangesAsync();
                 return Ok("Payment type added successfully.");
             }
@@ -79,6 +79,41 @@ namespace PPFAttendanceApi.Controllers
                 paymentType.Type = type;
                 await db.SaveChangesAsync();
                 return Ok("Payment type updated successfully.");
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpPost("PaymentTypeStatusChange")]
+        public async Task<IActionResult> PaymentTypeStatusChange(int paymentTypeId, bool status)
+        {
+            try
+            {
+                if (status == false)
+                {
+                    var check = await db.Employees.AnyAsync(x => x.PaymentTypeId == paymentTypeId && x.IsActive);
+
+                    if (check)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "Cannot deactivate this Payment Type because it is assigned to active employees." });
+                    }
+
+                    var paymentType = await db.PaymentTypes.FirstOrDefaultAsync(x => x.PaymentTypeId == paymentTypeId);
+
+                    paymentType.IsActive = status;
+                    await db.SaveChangesAsync();
+
+                    return Json(new { statusCode = 200, message = "Payment Type deactivated successfully." });
+                }
+
+                var paymentTypeActive = await db.PaymentTypes.FirstOrDefaultAsync(x => x.PaymentTypeId == paymentTypeId);
+
+                paymentTypeActive.IsActive = status;
+                await db.SaveChangesAsync();
+
+                return Json(new { statusCode = 200, message = "Payment Type activated successfully." });
             }
             catch (Exception e)
             {

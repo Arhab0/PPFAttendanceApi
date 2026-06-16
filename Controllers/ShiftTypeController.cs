@@ -24,7 +24,7 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest("Shift type already exists.");
                 }
 
-                await db.ShiftTypes.AddAsync(new ShiftType { Type = type });
+                await db.ShiftTypes.AddAsync(new ShiftType { Type = type, IsActive = true });
                 await db.SaveChangesAsync();
                 return Ok("Shift type added successfully.");
             }
@@ -86,5 +86,33 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
+        [HttpPost("ShiftTypeStatusChange")]
+        public async Task<IActionResult> ShiftTypeStatusChange(int shiftTypeId, bool status)
+        {
+            try
+            {
+                if (status == false)
+                {
+                    var check = await db.Employees.Where(x => x.ShiftTypeId == shiftTypeId && x.IsActive == true).AnyAsync();
+
+                    if (check)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "Cannot deactivate this ShiftType with active employees" });
+                    }
+                    var _ = await db.ShiftTypes.Where(x => x.ShiftTypeId == shiftTypeId).FirstOrDefaultAsync();
+                    _?.IsActive = status;
+                    return Json(new { statusCode = 200, message = "ShiftType DeActivated successfully." });
+                }
+
+                var __ = await db.ShiftTypes.Where(x => x.ShiftTypeId == shiftTypeId).FirstOrDefaultAsync();
+                __?.IsActive = status;
+
+                return Json(new { statusCode = 200, message = "ShiftType Activated successfully." });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
     }
 }
