@@ -110,7 +110,6 @@ namespace PPFAttendanceApi.Controllers
 
                 await db.EmpUserBrDeptMappings.AddRangeAsync(employeeBrDeptMappings);
                 await db.Locations.AddRangeAsync(locations);
-                await db.SaveChangesAsync();
 
                 await db.ActivityLogs.AddAsync(new()
                 {
@@ -120,6 +119,7 @@ namespace PPFAttendanceApi.Controllers
                     Description = $"Employee created by {(roleId == 1 ? "Super Admin" : "HR")}"
                 });
 
+                await db.SaveChangesAsync();
                 await db.Database.CommitTransactionAsync();
                 return Ok(new { statusCode = 200, message = "Employee added successfully" });
             }
@@ -292,15 +292,15 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
-        [HttpPost("DeActivateEmployee")]
-        public async Task<IActionResult> DeActivateEmployee(int employeeId)
+        [HttpPost("ChangeEmployeeActivationStatus")]
+        public async Task<IActionResult> ChangeEmployeeActivationStatus(int employeeId,bool status)
         {
             try
             {
                 var employee = await db.Employees.Where(x => x.EmployeeId == employeeId).FirstOrDefaultAsync();
-                employee.IsActive = false;
+                employee.IsActive = status;
                 await db.SaveChangesAsync();
-                return Json(new { statusCode = 200, message = "Employee Deactivated Successfully." });
+                return Json(new { statusCode = 200, message = $"Employee {(status == false ? "Deactivated" : "Activated")} Successfully." });
             }
             catch (Exception e)
             {
