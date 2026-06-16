@@ -101,12 +101,13 @@ namespace PPFAttendanceApi.Controllers
                     }
                     var _ = await db.ShiftTypes.Where(x => x.ShiftTypeId == shiftTypeId).FirstOrDefaultAsync();
                     _?.IsActive = status;
+                    await db.SaveChangesAsync();
                     return Json(new { statusCode = 200, message = "ShiftType DeActivated successfully." });
                 }
 
                 var __ = await db.ShiftTypes.Where(x => x.ShiftTypeId == shiftTypeId).FirstOrDefaultAsync();
                 __?.IsActive = status;
-
+                await db.SaveChangesAsync();
                 return Json(new { statusCode = 200, message = "ShiftType Activated successfully." });
             }
             catch (Exception e)
