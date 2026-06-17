@@ -165,6 +165,83 @@ namespace PPFAttendanceApi.Controllers
                 return BadRequest(e.Message);
             }
         }
+
+        [HttpGet("GetDepartmentList")]
+        public async Task<IActionResult> GetDepartmentList()
+        {
+            try
+            {
+                var departments = await db.Departments
+                    .AsNoTracking()
+                    .Where(x => x.IsActive == true)
+                    .Select(d => new
+                    {
+                        d.DepartmentId,
+                        d.DepartmentName,
+                        d.BranchId,
+                        d.ParentDepartmentId,
+
+                        ParentDepartmentName = d.ParentDepartment != null
+                            ? d.ParentDepartment.DepartmentName
+                            : null,
+
+                        d.Branch.BranchName,
+
+                        DirectCount = d.EmpUserBrDeptMappings.Count(m =>
+                            (m.EmployeeId != null && m.Employee.IsActive == true) ||
+                            (m.UserId != null && m.User.IsActive == true))
+                    })
+                    .ToListAsync();
+
+                var counts = await db.Database.SqlQueryRaw<DeptCount>(@"
+                        WITH RecursiveDept AS (
+                            -- Anchor: start from each department itself
+                            SELECT DepartmentId AS RootId, DepartmentId AS ChildId
+                            FROM Departments
+                            WHERE IsActive = true
+
+                            UNION ALL
+
+                            -- Recursive: go deeper into children
+                            SELECT r.RootId, d.DepartmentId
+                            FROM Departments d
+                            INNER JOIN RecursiveDept r ON d.ParentDepartmentId = r.ChildId
+                            WHERE d.IsActive = true
+                        )
+                        SELECT 
+                            r.RootId AS DepartmentId,
+                            COUNT(DISTINCT m.EmpUserBrDeptMappingId) AS TotalCount
+                        FROM RecursiveDept r
+                        LEFT JOIN EmpUserBrDeptMappings m ON m.DepartmentId = r.ChildId
+                        LEFT JOIN Employees e ON m.EmployeeId = e.EmployeeId AND e.IsActive = true
+                        LEFT JOIN Users u ON m.UserId = u.UserId AND u.IsActive = true
+                        WHERE (m.EmployeeId IS NOT NULL AND e.EmployeeId IS NOT NULL)
+                           OR (m.UserId IS NOT NULL AND u.UserId IS NOT NULL)
+                           OR m.EmpUserBrDeptMappingId IS NULL
+                        GROUP BY r.RootId
+                           ").ToListAsync();
+
+                var countMap = counts.ToDictionary(x => x.DepartmentId, x => x.TotalCount);
+
+                var result = departments.Select(d => new
+                {
+                    d.DepartmentId,
+                    d.DepartmentName,
+                    d.BranchId,
+                    d.ParentDepartmentId,
+                    d.ParentDepartmentName,
+                    d.BranchName,
+                    TotalCount = countMap.TryGetValue(d.DepartmentId, out var count) ? count : 0
+                }).ToList();
+
+                return Ok(new { statusCode = 200, departments = result });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
         [HttpGet("GetDepartmentByBranchId")]
         public async Task<IActionResult> GetDepartmentByBranchId(int branchId)
         {
@@ -187,8 +264,8 @@ namespace PPFAttendanceApi.Controllers
                         d.Branch.BranchName,
 
                         DirectCount = d.EmpUserBrDeptMappings.Count(m =>
-                            (m.EmployeeId != null && m.Employee.IsActive) ||
-                            (m.UserId != null && m.User.IsActive))
+                            (m.EmployeeId != null && m.Employee.IsActive == true) ||
+                            (m.UserId != null && m.User.IsActive == true))
                     })
                     .ToListAsync();
 
@@ -197,7 +274,7 @@ namespace PPFAttendanceApi.Controllers
                             -- Anchor: start from each department itself
                             SELECT DepartmentId AS RootId, DepartmentId AS ChildId
                             FROM Departments
-                            WHERE BranchId = {0} AND IsActive = 1
+                            WHERE BranchId = {0} AND sActive = true
 
                             UNION ALL
 
@@ -205,15 +282,15 @@ namespace PPFAttendanceApi.Controllers
                             SELECT r.RootId, d.DepartmentId
                             FROM Departments d
                             INNER JOIN RecursiveDept r ON d.ParentDepartmentId = r.ChildId
-                            WHERE d.IsActive = 1
+                            WHERE d.IsActive = true
                         )
                         SELECT 
                             r.RootId AS DepartmentId,
                             COUNT(DISTINCT m.EmpUserBrDeptMappingId) AS TotalCount
                         FROM RecursiveDept r
                         LEFT JOIN EmpUserBrDeptMappings m ON m.DepartmentId = r.ChildId
-                        LEFT JOIN Employees e ON m.EmployeeId = e.EmployeeId AND e.IsActive = 1
-                        LEFT JOIN Users u ON m.UserId = u.UserId AND u.IsActive = 1
+                        LEFT JOIN Employees e ON m.EmployeeId = e.EmployeeId AND e.IsActive = true
+                        LEFT JOIN Users u ON m.UserId = u.UserId AND u.IsActive = true
                         WHERE (m.EmployeeId IS NOT NULL AND e.EmployeeId IS NOT NULL)
                            OR (m.UserId IS NOT NULL AND u.UserId IS NOT NULL)
                            OR m.EmpUserBrDeptMappingId IS NULL
