@@ -29,20 +29,6 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
-        [HttpGet("GetDepartments")]
-        public async Task<IActionResult> GetDepartments()
-        {
-            try
-            {
-                var departments = await db.Departments.Where(x=>x.IsActive).Select(x => new { x.DepartmentId, x.DepartmentName, x.CreatedAt }).ToListAsync();
-                return Json(departments);
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-        }
-
         [HttpGet("GetPaymentTypes")]
         public async Task<IActionResult> GetPaymentTypes()
         {

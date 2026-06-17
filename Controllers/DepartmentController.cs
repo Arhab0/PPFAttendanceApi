@@ -116,31 +116,26 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
-        [HttpGet("GetParentDepartments")]
-        public async Task<IActionResult> GetParentDepartments()
+        // for dropdown
+        [HttpGet("GetParentDepartmentByBranchId")]
+        public async Task<IActionResult> GetParentDepartmentByBranchId(int branchId)
         {
             try
             {
-                var departments = await db.Departments.AsNoTracking().Where(x => x.ParentDepartmentId == null && x.IsActive == true)
-                     .Select(d => new
-                     {
-                         d.DepartmentId,
-                         d.DepartmentName,
-                         d.ParentDepartmentId,
+                var activeChildIds = db.Departments.AsNoTracking()
+                                    .Where(x => x.IsActive && x.ParentDepartmentId != null && x.BranchId == branchId)
+                                    .Select(x => x.ParentDepartmentId).ToList();
 
-                         ParentDepartmentName = d.ParentDepartment != null
-                             ? d.ParentDepartment.DepartmentName
-                             : null,
-
-                         d.BranchId,
-                         d.Branch.BranchName,
-
-                         TotalCount = d.EmpUserBrDeptMappings.Count(m =>
-                             (m.EmployeeId != null && m.Employee.IsActive) ||
-                             (m.UserId != null && m.User.IsActive))
-                     })
-                     .ToListAsync();
-
+                var departments = await db.Departments
+                    .AsNoTracking()
+                    .Where(x => x.IsActive && x.BranchId == branchId &&
+                                (x.ParentDepartmentId == null || activeChildIds.Contains(x.DepartmentId)))
+                    .Select(d => new
+                    {
+                        d.DepartmentId,
+                        d.DepartmentName,
+                    })
+                    .ToListAsync();
                 return Ok(new { statusCode = 200, departments });
             }
             catch (Exception e)
@@ -149,28 +144,17 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
+        // for dropdown
         [HttpGet("GetSubDepartmentsByParentId")]
         public async Task<IActionResult> GetSubDepartmentsByParentId(int parentId)
         {
             try
             {
-                var departments = await db.Departments.AsNoTracking().Where(x=>x.ParentDepartmentId == parentId && x.IsActive == true)
+                var departments = await db.Departments.AsNoTracking().Where(x => x.ParentDepartmentId == parentId && x.IsActive == true)
                     .Select(d => new
                     {
                         d.DepartmentId,
                         d.DepartmentName,
-                        d.ParentDepartmentId,
-
-                        ParentDepartmentName = d.ParentDepartment != null
-                            ? d.ParentDepartment.DepartmentName
-                            : null,
-
-                        d.BranchId,
-                        d.Branch.BranchName,
-
-                        TotalCount = d.EmpUserBrDeptMappings.Count(m =>
-                            (m.EmployeeId != null && m.Employee.IsActive) ||
-                            (m.UserId != null && m.User.IsActive))
                     })
                     .ToListAsync();
 
@@ -181,49 +165,75 @@ namespace PPFAttendanceApi.Controllers
                 return BadRequest(e.Message);
             }
         }
-
         [HttpGet("GetDepartmentByBranchId")]
         public async Task<IActionResult> GetDepartmentByBranchId(int branchId)
         {
             try
             {
-                var departments = await db.Departments.Where(x => x.BranchId == branchId).Include(x => x.ParentDepartment)
-                    .Select(d => new { d.DepartmentId, d.DepartmentName, d.ParentDepartmentId, ParentDepartmentName = d.ParentDepartment.DepartmentName, d.BranchId })
-                    .ToListAsync();
-                return Ok(new { statusCode = 200, departments });
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-        }
-
-        [HttpGet("GetAllDepartments")]
-        public async Task<IActionResult> GetAllDepartments()
-        {
-            try
-            {
-                var departments = await db.Departments.Where(x=>x.IsActive == true)
+                var departments = await db.Departments
+                    .AsNoTracking()
+                    .Where(x => x.BranchId == branchId && x.IsActive)
                     .Select(d => new
                     {
                         d.DepartmentId,
                         d.DepartmentName,
+                        d.BranchId,
                         d.ParentDepartmentId,
 
                         ParentDepartmentName = d.ParentDepartment != null
                             ? d.ParentDepartment.DepartmentName
                             : null,
 
-                        d.BranchId,
                         d.Branch.BranchName,
 
-                        TotalCount = d.EmpUserBrDeptMappings.Count(m =>
+                        DirectCount = d.EmpUserBrDeptMappings.Count(m =>
                             (m.EmployeeId != null && m.Employee.IsActive) ||
                             (m.UserId != null && m.User.IsActive))
                     })
                     .ToListAsync();
 
-                return Ok(new { statusCode = 200, departments });
+                var counts = await db.Database.SqlQueryRaw<DeptCount>(@"
+                        WITH RecursiveDept AS (
+                            -- Anchor: start from each department itself
+                            SELECT DepartmentId AS RootId, DepartmentId AS ChildId
+                            FROM Departments
+                            WHERE BranchId = {0} AND IsActive = 1
+
+                            UNION ALL
+
+                            -- Recursive: go deeper into children
+                            SELECT r.RootId, d.DepartmentId
+                            FROM Departments d
+                            INNER JOIN RecursiveDept r ON d.ParentDepartmentId = r.ChildId
+                            WHERE d.IsActive = 1
+                        )
+                        SELECT 
+                            r.RootId AS DepartmentId,
+                            COUNT(DISTINCT m.EmpUserBrDeptMappingId) AS TotalCount
+                        FROM RecursiveDept r
+                        LEFT JOIN EmpUserBrDeptMappings m ON m.DepartmentId = r.ChildId
+                        LEFT JOIN Employees e ON m.EmployeeId = e.EmployeeId AND e.IsActive = 1
+                        LEFT JOIN Users u ON m.UserId = u.UserId AND u.IsActive = 1
+                        WHERE (m.EmployeeId IS NOT NULL AND e.EmployeeId IS NOT NULL)
+                           OR (m.UserId IS NOT NULL AND u.UserId IS NOT NULL)
+                           OR m.EmpUserBrDeptMappingId IS NULL
+                        GROUP BY r.RootId
+                           ", branchId).ToListAsync();
+
+                var countMap = counts.ToDictionary(x => x.DepartmentId, x => x.TotalCount);
+
+                var result = departments.Select(d => new
+                {
+                    d.DepartmentId,
+                    d.DepartmentName,
+                    d.BranchId,
+                    d.ParentDepartmentId,
+                    d.ParentDepartmentName,
+                    d.BranchName,
+                    TotalCount = countMap.TryGetValue(d.DepartmentId, out var count) ? count : 0
+                }).ToList();
+
+                return Ok(new { statusCode = 200, departments = result });
             }
             catch (Exception e)
             {
@@ -276,12 +286,12 @@ namespace PPFAttendanceApi.Controllers
             {
                 var check1 = await db.Departments.Where(x => x.ParentDepartmentId == departmentId && x.IsActive == true).CountAsync();
                 var check2 = await db.EmpUserBrDeptMappings.Where(x => x.DepartmentId == departmentId && (x.Employee.IsActive == true || x.User.IsActive == true)).CountAsync();
-                
-                if(check1 > 0)
+
+                if (check1 > 0)
                 {
                     return BadRequest(new { message = "Cannot deactivate department with active sub-departments" });
                 }
-                else if(check2 > 0)
+                else if (check2 > 0)
                 {
                     return BadRequest(new { message = "Cannot deactivate department with active users assigned" });
                 }
@@ -297,5 +307,10 @@ namespace PPFAttendanceApi.Controllers
                 return BadRequest(e.Message);
             }
         }
+    }
+    public class DeptCount
+    {
+        public int DepartmentId { get; set; }
+        public int TotalCount { get; set; }
     }
 }
