@@ -107,8 +107,8 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
-        [HttpGet("GetBrancheById")]
-        public async Task<IActionResult> GetBrancheById(int branchId)
+        [HttpGet("GetBranchById")]
+        public async Task<IActionResult> GetBranchById(int branchId)
         {
             try
             {
