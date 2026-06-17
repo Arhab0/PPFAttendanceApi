@@ -179,7 +179,7 @@ namespace PPFAttendanceApi.Controllers
                         d.DepartmentName,
                         d.BranchId,
                         d.ParentDepartmentId,
-
+                        d.IsActive,
                         ParentDepartmentName = d.ParentDepartment != null
                             ? d.ParentDepartment.DepartmentName
                             : null,
