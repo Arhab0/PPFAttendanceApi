@@ -173,7 +173,6 @@ namespace PPFAttendanceApi.Controllers
             {
                 var departments = await db.Departments
                     .AsNoTracking()
-                    .Where(x => x.IsActive == true)
                     .Select(d => new
                     {
                         d.DepartmentId,
@@ -194,30 +193,28 @@ namespace PPFAttendanceApi.Controllers
                     .ToListAsync();
 
                 var counts = await db.Database.SqlQueryRaw<DeptCount>(@"
-                        WITH RecursiveDept AS (
+                        WITH RECURSIVE RecursiveDept AS (
                             -- Anchor: start from each department itself
-                            SELECT DepartmentId AS RootId, DepartmentId AS ChildId
-                            FROM Departments
-                            WHERE IsActive = true
+                            SELECT department_id AS RootId, department_id AS ChildId
+                            FROM master.department
 
                             UNION ALL
 
                             -- Recursive: go deeper into children
-                            SELECT r.RootId, d.DepartmentId
-                            FROM Departments d
-                            INNER JOIN RecursiveDept r ON d.ParentDepartmentId = r.ChildId
-                            WHERE d.IsActive = true
+                            SELECT r.RootId, d.department_id as DepartmentId
+                            FROM master.department d
+                            INNER JOIN RecursiveDept r ON d.parent_department_id = r.ChildId
                         )
                         SELECT 
                             r.RootId AS DepartmentId,
-                            COUNT(DISTINCT m.EmpUserBrDeptMappingId) AS TotalCount
+                            COUNT(DISTINCT m.br_dept_mapping_id) AS TotalCount
                         FROM RecursiveDept r
-                        LEFT JOIN EmpUserBrDeptMappings m ON m.DepartmentId = r.ChildId
-                        LEFT JOIN Employees e ON m.EmployeeId = e.EmployeeId AND e.IsActive = true
-                        LEFT JOIN Users u ON m.UserId = u.UserId AND u.IsActive = true
-                        WHERE (m.EmployeeId IS NOT NULL AND e.EmployeeId IS NOT NULL)
-                           OR (m.UserId IS NOT NULL AND u.UserId IS NOT NULL)
-                           OR m.EmpUserBrDeptMappingId IS NULL
+                        LEFT JOIN master.emp_user_br_dept_mapping m ON m.department_id = r.ChildId
+                        LEFT JOIN master.employees e ON m.employee_id = e.employee_id AND e.is_active = true
+                        LEFT JOIN master.user u ON m.user_id = u.user_id AND u.is_active = true
+                        WHERE (m.employee_id IS NOT NULL AND e.employee_id IS NOT NULL)
+                           OR (m.user_id IS NOT NULL AND u.user_id IS NOT NULL)
+                           OR m.br_dept_mapping_id IS NULL
                         GROUP BY r.RootId
                            ").ToListAsync();
 
@@ -269,31 +266,36 @@ namespace PPFAttendanceApi.Controllers
                     })
                     .ToListAsync();
 
+                if (departments.Count == 0)
+                {
+                    return Json(new { statusCode = 200, message = "No active departments found in this branch" });
+                }
+
                 var counts = await db.Database.SqlQueryRaw<DeptCount>(@"
-                        WITH RecursiveDept AS (
+                        WITH RECURSIVE RecursiveDept AS (
                             -- Anchor: start from each department itself
-                            SELECT DepartmentId AS RootId, DepartmentId AS ChildId
-                            FROM Departments
-                            WHERE BranchId = {0} AND sActive = true
+                            SELECT department_id AS RootId, department_id AS ChildId
+                            FROM master.department
+                            WHERE branch_id = {0} AND is_active = true
 
                             UNION ALL
 
                             -- Recursive: go deeper into children
-                            SELECT r.RootId, d.DepartmentId
-                            FROM Departments d
-                            INNER JOIN RecursiveDept r ON d.ParentDepartmentId = r.ChildId
-                            WHERE d.IsActive = true
+                            SELECT r.RootId, d.department_id as DepartmentId
+                            FROM master.department d
+                            INNER JOIN RecursiveDept r ON d.parent_department_id = r.ChildId
+                            WHERE d.is_active = true
                         )
                         SELECT 
                             r.RootId AS DepartmentId,
-                            COUNT(DISTINCT m.EmpUserBrDeptMappingId) AS TotalCount
+                            COUNT(DISTINCT m.br_dept_mapping_id) AS TotalCount
                         FROM RecursiveDept r
-                        LEFT JOIN EmpUserBrDeptMappings m ON m.DepartmentId = r.ChildId
-                        LEFT JOIN Employees e ON m.EmployeeId = e.EmployeeId AND e.IsActive = true
-                        LEFT JOIN Users u ON m.UserId = u.UserId AND u.IsActive = true
-                        WHERE (m.EmployeeId IS NOT NULL AND e.EmployeeId IS NOT NULL)
-                           OR (m.UserId IS NOT NULL AND u.UserId IS NOT NULL)
-                           OR m.EmpUserBrDeptMappingId IS NULL
+                        LEFT JOIN master.emp_user_br_dept_mapping m ON m.department_id = r.ChildId
+                        LEFT JOIN master.employees e ON m.employee_id = e.employee_id AND e.is_active = true
+                        LEFT JOIN master.user u ON m.user_id = u.user_id AND u.is_active = true
+                        WHERE (m.employee_id IS NOT NULL AND e.employee_id IS NOT NULL)
+                           OR (m.user_id IS NOT NULL AND u.user_id IS NOT NULL)
+                           OR m.br_dept_mapping_id IS NULL
                         GROUP BY r.RootId
                            ", branchId).ToListAsync();
 
