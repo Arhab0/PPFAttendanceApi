@@ -96,6 +96,7 @@ namespace PPFAttendanceApi.Controllers
                     x.Latitude,
                     x.Longitude,
                     x.IsActive,
+                    x.Radius,
                     TotalCount = x.EmpUserBrDeptMappings.Count(m => (m.EmployeeId != null && m.Employee.IsActive == true) || (m.UserId != null && m.User.IsActive == true))
                 }).ToListAsync();
                 return Ok(new { statusCode = 200, branches });
@@ -121,6 +122,7 @@ namespace PPFAttendanceApi.Controllers
                     x.Latitude,
                     x.Longitude,
                     x.IsActive,
+                    x.Radius
                 }).FirstOrDefaultAsync();
                 return Ok(new { statusCode = 200, branches });
             }
