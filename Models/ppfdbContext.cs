@@ -355,6 +355,9 @@ public partial class ppfdbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
+            entity.Property(e => e.EmergencyContact)
+                .HasColumnType("character varying")
+                .HasColumnName("emergency_contact");
             entity.Property(e => e.EmployeeCode)
                 .HasColumnType("character varying")
                 .HasColumnName("employee_code");
@@ -385,6 +388,9 @@ public partial class ppfdbContext : DbContext
                 .HasColumnName("mobile_number");
             entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
             entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.ShiftHours)
+                .HasColumnType("character varying")
+                .HasColumnName("shift_hours");
             entity.Property(e => e.ShiftTypeId).HasColumnName("shift_type_id");
             entity.Property(e => e.UpdatedAt)
                 .HasColumnType("timestamp without time zone")

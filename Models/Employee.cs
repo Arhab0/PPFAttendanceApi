@@ -39,6 +39,10 @@ public partial class Employee
 
     public int? EmployeeTypeId { get; set; }
 
+    public string ShiftHours { get; set; }
+
+    public string EmergencyContact { get; set; }
+
     public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
 
     public virtual ICollection<DeviceSession> DeviceSessions { get; set; } = new List<DeviceSession>();
