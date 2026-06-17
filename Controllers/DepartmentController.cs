@@ -239,6 +239,7 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("GetDepartmentByBranchId")]
         public async Task<IActionResult> GetDepartmentByBranchId(int branchId)
         {
@@ -246,7 +247,7 @@ namespace PPFAttendanceApi.Controllers
             {
                 var departments = await db.Departments
                     .AsNoTracking()
-                    .Where(x => x.BranchId == branchId && x.IsActive)
+                    .Where(x => x.BranchId == branchId)
                     .Select(d => new
                     {
                         d.DepartmentId,
@@ -276,7 +277,7 @@ namespace PPFAttendanceApi.Controllers
                             -- Anchor: start from each department itself
                             SELECT department_id AS RootId, department_id AS ChildId
                             FROM master.department
-                            WHERE branch_id = {0} AND is_active = true
+                            WHERE branch_id = {0}
 
                             UNION ALL
 
@@ -284,7 +285,6 @@ namespace PPFAttendanceApi.Controllers
                             SELECT r.RootId, d.department_id as DepartmentId
                             FROM master.department d
                             INNER JOIN RecursiveDept r ON d.parent_department_id = r.ChildId
-                            WHERE d.is_active = true
                         )
                         SELECT 
                             r.RootId AS DepartmentId,
