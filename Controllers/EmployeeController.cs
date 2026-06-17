@@ -297,8 +297,19 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
+                var sid = int.Parse(claims["sid"]);
+                ActivityLog log = new();
+
                 var employee = await db.Employees.Where(x => x.EmployeeId == employeeId).FirstOrDefaultAsync();
                 employee.IsActive = status;
+
+
+                log.CreatedById = sid;
+                log.CreatedId = employee.EmployeeId;
+                log.CreatedAt = DateTime.Now;
+                log.Description = $"Employee {(status == true ? "Activated" : "Deactivated")} by {(claims["RoleId"] == "1" ? "Super Admin" : "HR")}";
+
+                await db.ActivityLogs.AddAsync(log);
                 await db.SaveChangesAsync();
                 return Json(new { statusCode = 200, message = $"Employee {(status == false ? "Deactivated" : "Activated")} Successfully." });
             }

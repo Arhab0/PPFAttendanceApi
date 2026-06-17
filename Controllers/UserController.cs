@@ -168,8 +168,8 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
-        [HttpPost("DeActivateUser")]
-        public async Task<IActionResult> DeActivateUser(int id, bool status)
+        [HttpPost("ChangeActivateStatusOfUser")]
+        public async Task<IActionResult> ChangeActivateStatusOfUser(int id, bool status)
         {
             await db.Database.BeginTransactionAsync();
             try
@@ -187,7 +187,7 @@ namespace PPFAttendanceApi.Controllers
                 log.CreatedById = sid;
                 log.CreatedId = user.UserId;
                 log.CreatedAt = DateTime.Now;
-                log.Description = $"{user.Role.RoleName} {(status == true ? "Activated" : "Deactivated")} by {(claims["RoleId"] == "1" ? "Super Admin" : "Manager")}";
+                log.Description = $"{user.Role.RoleName} {(status == true ? "Activated" : "Deactivated")} by {(claims["RoleId"] == "1" ? "Super Admin" : "HR")}";
 
                 await db.ActivityLogs.AddAsync(log);
                 await db.SaveChangesAsync();
