@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PPFAttendanceApi.Dto;
 using PPFAttendanceApi.Helper;
 using PPFAttendanceApi.Models;
 
@@ -14,17 +15,24 @@ namespace PPFAttendanceApi.Controllers
         private readonly ppfdbContext db = _context;
 
         [HttpPost("AddShiftType")]
-        public async Task<IActionResult> AddShiftType(string type)
+        public async Task<IActionResult> AddShiftType(ShiftDto dto)
         {
             try
             {
-                var check = await db.ShiftTypes.Where(x => x.Type == type).FirstOrDefaultAsync();
+                var check = await db.ShiftTypes.Where(x => x.Type.ToLower() == dto.Type.ToLower()).FirstOrDefaultAsync();
                 if (check != null)
                 {
                     return BadRequest("Shift type already exists.");
                 }
 
-                await db.ShiftTypes.AddAsync(new ShiftType { Type = type, IsActive = true });
+                await db.ShiftTypes.AddAsync(new()
+                {
+                    Type = dto.Type,
+                    ShiftHours = dto.ShiftHours,
+                    ShiftStartAt = dto.ShiftStartAt,
+                    ShiftEndAt = dto.ShiftEndAt,
+                    IsActive = true
+                });
                 await db.SaveChangesAsync();
                 return Ok("Shift type added successfully.");
             }
@@ -67,16 +75,19 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpPost("UpdateShiftType")]
-        public async Task<IActionResult> UpdateShiftType(int id, string type)
+        public async Task<IActionResult> UpdateShiftType(ShiftDto dto)
         {
             try
             {
-                var shiftType = await db.ShiftTypes.FindAsync(id);
+                var shiftType = await db.ShiftTypes.Where(x => x.ShiftTypeId == dto.ShiftId).FirstOrDefaultAsync();
                 if (shiftType == null)
                 {
                     return NotFound("Shift type not found.");
                 }
-                shiftType.Type = type;
+                shiftType.Type = dto.Type;
+                shiftType.ShiftHours = dto.ShiftHours;
+                shiftType.ShiftStartAt = dto.ShiftStartAt;
+                shiftType.ShiftEndAt = dto.ShiftEndAt;
                 await db.SaveChangesAsync();
                 return Ok("Shift type updated successfully.");
             }

@@ -22,7 +22,7 @@ namespace PPFAttendanceApi.Controllers
             await db.Database.BeginTransactionAsync();
             try
             {
-                var sid = int.Parse(claims["sid"]);
+                var userClaimId = int.Parse(claims["sid"]);
                 var roleId = int.Parse(claims["RoleId"]);
 
                 if (await db.Employees.AnyAsync(e => e.EmployeeEmail.Trim() == dto.Email.Trim()))
@@ -52,7 +52,6 @@ namespace PPFAttendanceApi.Controllers
                     JobTitle = dto.JobTitle,
                     MobileNumber = dto.MobileNumber,
                     EmergencyContact = dto.EmergencyContact,
-                    ShiftHours = dto.ShiftHours,
                     EmployeeEmail = dto.Email,
                     EmployeePassword = password,
                     RoleId = dto.RoleId,
@@ -115,7 +114,7 @@ namespace PPFAttendanceApi.Controllers
 
                 await db.ActivityLogs.AddAsync(new()
                 {
-                    CreatedById = sid,
+                    CreatedById = userClaimId,
                     CreatedId = employee.EmployeeId,
                     CreatedAt = DateTime.Now,
                     Description = $"Employee created by {(roleId == 1 ? "Super Admin" : "HR")}"
@@ -158,7 +157,6 @@ namespace PPFAttendanceApi.Controllers
                 employee.JobTitle = dto.JobTitle;
                 employee.MobileNumber = dto.MobileNumber;
                 employee.EmergencyContact = dto.EmergencyContact;
-                employee.ShiftHours = dto.ShiftHours;
                 employee.EmployeeEmail = dto.Email;
                 employee.RoleId = dto.RoleId;
                 employee.PaymentTypeId = dto.PaymentTypeId;
@@ -239,7 +237,6 @@ namespace PPFAttendanceApi.Controllers
                                 x.EmployeeEmail,
                                 x.EmployeeCode,
                                 x.IsActive,
-                                x.ShiftHours,
                                 x.EmployeeTypeId,
                                 EmployeeType = x.EmployeeType.Type,
                                 x.ShiftTypeId,
@@ -280,7 +277,6 @@ namespace PPFAttendanceApi.Controllers
                                 x.EmployeeCode,
                                 x.IsActive,
                                 x.EmergencyContact,
-                                x.ShiftHours,
                                 x.EmployeeTypeId,
                                 EmployeeType = x.EmployeeType.Type,
                                 x.ShiftTypeId,

@@ -388,9 +388,6 @@ public partial class ppfdbContext : DbContext
                 .HasColumnName("mobile_number");
             entity.Property(e => e.PaymentTypeId).HasColumnName("payment_type_id");
             entity.Property(e => e.RoleId).HasColumnName("role_id");
-            entity.Property(e => e.ShiftHours)
-                .HasColumnType("character varying")
-                .HasColumnName("shift_hours");
             entity.Property(e => e.ShiftTypeId).HasColumnName("shift_type_id");
             entity.Property(e => e.UpdatedAt)
                 .HasColumnType("timestamp without time zone")
@@ -553,6 +550,11 @@ public partial class ppfdbContext : DbContext
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
+            entity.Property(e => e.ShiftEndAt).HasColumnName("shift_end_at");
+            entity.Property(e => e.ShiftHours)
+                .HasColumnType("character varying")
+                .HasColumnName("shift_hours");
+            entity.Property(e => e.ShiftStartAt).HasColumnName("shift_start_at");
             entity.Property(e => e.Type)
                 .IsRequired()
                 .HasColumnType("character varying")

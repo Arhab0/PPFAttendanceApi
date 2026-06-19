@@ -9,7 +9,6 @@
         public string? Cnic { get; set; }
         public string? MobileNumber { get; set; }
         public string? EmergencyContact { get; set; }
-        public string? ShiftHours { get; set; }
         public string? JobTitle { get; set; }
         public string Email { get; set; }
         public string Password { get; set; }
