@@ -38,7 +38,8 @@ namespace PPFAttendanceApi.Controllers
                     CreatedAt = DateTime.Now,
                     CreatedBy = sid,
                     ParentDepartmentId = dto.ParentDepartmentId,
-                    BranchId = dto.BranchId
+                    BranchId = dto.BranchId,
+                    IsActive = true
                 };
 
                 await db.Departments.AddAsync(dept);
@@ -363,20 +364,28 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var check1 = await db.Departments.Where(x => x.ParentDepartmentId == departmentId && x.IsActive == true).CountAsync();
-                var check2 = await db.EmpUserBrDeptMappings.Where(x => x.DepartmentId == departmentId && (x.Employee.IsActive == true || x.User.IsActive == true)).CountAsync();
+                var allDescendantIds = await GetAllDescendantIds(departmentId);
+                var allAffectedIds = allDescendantIds.Append(departmentId).ToList();
+             
+                var check1 = await db.Departments
+                    .Where(x => x.ParentDepartmentId == departmentId && x.IsActive == true)
+                    .CountAsync();
+
+                var check2 = await db.EmpUserBrDeptMappings
+                    .Where(x => allAffectedIds.Contains(x.DepartmentId ?? 0)
+                             && (x.Employee.IsActive == true || x.User.IsActive == true))
+                    .CountAsync();
 
                 if (check1 > 0)
-                {
                     return BadRequest(new { message = "Cannot deactivate department with active sub-departments" });
-                }
-                else if (check2 > 0)
-                {
-                    return BadRequest(new { message = "Cannot deactivate department with active users assigned" });
-                }
 
-                var _ = await db.Departments.Where(x => x.DepartmentId == departmentId).FirstOrDefaultAsync();
-                _.IsActive = false;
+                if (check2 > 0)
+                    return BadRequest(new { message = "Cannot deactivate department with active users assigned" });
+
+             
+                await db.Departments
+                    .Where(x => allAffectedIds.Contains(x.DepartmentId))
+                    .ExecuteUpdateAsync(x => x.SetProperty(p => p.IsActive, false));
 
                 await db.SaveChangesAsync();
                 return Ok(new { statusCode = 200, message = "Department deactivated successfully" });
@@ -385,6 +394,31 @@ namespace PPFAttendanceApi.Controllers
             {
                 return BadRequest(e.Message);
             }
+        }
+
+        private async Task<List<int>> GetAllDescendantIds(int departmentId)
+        {
+            var sql = @"
+        WITH RECURSIVE dept_tree AS (
+            -- Base case: direct children of the target department
+            SELECT department_id
+            FROM master.department
+            WHERE parent_department_id = {0} AND is_active = true
+
+            UNION ALL
+
+            -- Recursive case: children of children
+            SELECT d.department_id
+            FROM master.department d
+            INNER JOIN dept_tree dt ON d.parent_department_id = dt.department_id
+            WHERE d.is_active = true
+        )
+        SELECT department_id FROM dept_tree
+    ";
+
+            return await db.Database
+                .SqlQueryRaw<int>(sql, departmentId)
+                .ToListAsync();
         }
     }
     public class DeptCount
