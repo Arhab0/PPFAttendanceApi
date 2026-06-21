@@ -21,12 +21,12 @@ namespace PPFAttendanceApi.Controllers
                 var check = await db.PaymentTypes.Where(x => x.Type == type).FirstOrDefaultAsync();
                 if (check != null)
                 {
-                    return BadRequest("Payment type already exists.");
+                    return BadRequest(new { statusCode = 400, message = "Payment type already exists." });
                 }
 
                 await db.PaymentTypes.AddAsync(new PaymentType { Type = type, IsActive = true });
                 await db.SaveChangesAsync();
-                return Ok("Payment type added successfully.");
+                return Ok(new { statusCode = 200, message = "Payment type added successfully." });
             }
             catch (Exception e)
             {
@@ -42,7 +42,7 @@ namespace PPFAttendanceApi.Controllers
                 var paymentType = await db.PaymentTypes.FindAsync(id);
                 if (paymentType == null)
                 {
-                    return NotFound("Payment type not found.");
+                    return NotFound(new { statusCode = 404, message = "Payment type not found." });
                 }
                 return Ok(paymentType);
             }
@@ -74,11 +74,11 @@ namespace PPFAttendanceApi.Controllers
                 var paymentType = await db.PaymentTypes.FindAsync(id);
                 if (paymentType == null)
                 {
-                    return NotFound("Payment type not found.");
+                    return NotFound(new { statusCode = 404, message = "Payment type not found." });
                 }
                 paymentType.Type = type;
                 await db.SaveChangesAsync();
-                return Ok("Payment type updated successfully.");
+                return Ok(new { statusCode = 200, message = "Payment type updated successfully." });
             }
             catch (Exception e)
             {

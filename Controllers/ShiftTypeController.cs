@@ -22,7 +22,7 @@ namespace PPFAttendanceApi.Controllers
                 var check = await db.ShiftTypes.Where(x => x.Type.ToLower() == dto.Type.ToLower()).FirstOrDefaultAsync();
                 if (check != null)
                 {
-                    return BadRequest("Shift type already exists.");
+                    return BadRequest(new {statusCode = 400, message = "Shift type already exists." });
                 }
 
                 await db.ShiftTypes.AddAsync(new()
@@ -34,7 +34,7 @@ namespace PPFAttendanceApi.Controllers
                     IsActive = true
                 });
                 await db.SaveChangesAsync();
-                return Ok("Shift type added successfully.");
+                return Ok(new { statusCode = 200, message = "Shift type added successfully." });
             }
             catch (Exception e)
             {
@@ -50,7 +50,7 @@ namespace PPFAttendanceApi.Controllers
                 var shiftType = await db.ShiftTypes.FindAsync(id);
                 if (shiftType == null)
                 {
-                    return NotFound("Shift type not found.");
+                    return NotFound(new { statusCode = 404, message = "Shift type not found." });
                 }
                 return Ok(shiftType);
             }
@@ -82,14 +82,14 @@ namespace PPFAttendanceApi.Controllers
                 var shiftType = await db.ShiftTypes.Where(x => x.ShiftTypeId == dto.ShiftId).FirstOrDefaultAsync();
                 if (shiftType == null)
                 {
-                    return NotFound("Shift type not found.");
+                    return NotFound(new { statusCode = 404, message = "Shift type not found." });
                 }
                 shiftType.Type = dto.Type;
                 shiftType.ShiftHours = dto.ShiftHours;
                 shiftType.ShiftStartAt = dto.ShiftStartAt;
                 shiftType.ShiftEndAt = dto.ShiftEndAt;
                 await db.SaveChangesAsync();
-                return Ok("Shift type updated successfully.");
+                return Ok(new { statusCode = 200, message = "Shift type updated successfully." });
             }
             catch (Exception e)
             {

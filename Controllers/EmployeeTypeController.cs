@@ -21,12 +21,12 @@ namespace PPFAttendanceApi.Controllers
                 var check = await db.EmployeeTypes.Where(x => x.Type == type).FirstOrDefaultAsync();
                 if (check != null)
                 {
-                    return BadRequest("Employee type already exists.");
+                    return BadRequest(new { statusCode = 400, message = "Employee type already exists." });
                 }
 
                 await db.EmployeeTypes.AddAsync(new EmployeeType { Type = type, IsActive = true });
                 await db.SaveChangesAsync();
-                return Ok("Employee type added successfully.");
+                return Ok(new { statusCode = 200, message = "Employee type added successfully." });
             }
             catch (Exception e)
             {
@@ -42,7 +42,7 @@ namespace PPFAttendanceApi.Controllers
                 var employeeType = await db.EmployeeTypes.FindAsync(id);
                 if (employeeType == null)
                 {
-                    return NotFound("Employee type not found.");
+                    return NotFound(new { statusCode = 404, message = "Employee type not found." });
                 }
                 return Ok(employeeType);
             }
@@ -74,11 +74,11 @@ namespace PPFAttendanceApi.Controllers
                 var employeeType = await db.EmployeeTypes.FindAsync(id);
                 if (employeeType == null)
                 {
-                    return NotFound("Employee type not found.");
+                    return NotFound(new { statusCode = 404, message = "Employee type not found." });
                 }
                 employeeType.Type = type;
                 await db.SaveChangesAsync();
-                return Ok("Employee type updated successfully.");
+                return Ok(new { statusCode = 200, message = "Employee type updated successfully." });
             }
             catch (Exception e)
             {
