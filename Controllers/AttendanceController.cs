@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore; 
+using Microsoft.EntityFrameworkCore;
 using PPFAttendanceApi.Helper;
 using PPFAttendanceApi.Models;
 using PPFAttendanceApi.Dto;
@@ -107,7 +107,7 @@ namespace PPFAttendanceApi.Controllers
                     TimeInAt = entity.TimeInAt?.ToString("HH:mm:ss"),
                     TimeInMobile = entity.TimeInMobile?.ToString("HH:mm:ss"),
                     TimeInImage = entity.TimeInImage?.ToString("HH:mm:ss"),
-                    AttendanceInImagePath = roleId == 3 
+                    AttendanceInImagePath = roleId == 3
                                                     ?
                                                     entity.AttendanceInImagePath != null ?
                                                         $"/images/employeeAttendance/{entity.Employee.EmployeeCode}/{(entity.TimeInAt ?? entity.TimeInMobile ?? entity.TimeInImage)?.ToString("dd-MMM-yyyy")}/{entity.AttendanceInImagePath}" : null
@@ -283,22 +283,45 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
-        [HttpPost("MarkAttendanceFromManager")]
-        public async Task<IActionResult> MarkAttendanceFromManager(AttendanceDto dto)
+        [HttpPost("MarkAttendanceTablet")]
+        public async Task<IActionResult> MarkAttendanceTablet(AttendanceDto dto)
         {
             await db.Database.BeginTransactionAsync();
             try
             {
                 var roleId = int.Parse(claims["RoleId"]);
+                bool empFlag = false;
+                string employeeCode = "";
+                var empCheck = await db.Employees.Where(x => x.EmployeeId == dto.sid).FirstOrDefaultAsync();
+
+                if (empCheck == null)
+                {
+                    var staffCheck = await db.Users.Where(x => x.UserId == dto.sid).FirstOrDefaultAsync();
+
+                    if (staffCheck?.IsActive == false)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "Unable to mark attendance. User is deactivated."});
+                    }
+                }
+                else
+                {
+                    if (empCheck.IsActive == false)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "Unable to mark attendance. Employee is deactivated." });
+                    }
+
+                    employeeCode = empCheck.EmployeeCode;
+                    empFlag = true;
+
+                }
 
                 var checkDate = (dto.TimeInAt != null ? dto.TimeInAt : dto.TimeInMobile != null ? dto.TimeInMobile : dto.TimeInImage)?.Date
                                 ?? DateTime.UtcNow.Date;
 
-                var employeeCode = (await db.Employees.Where(x => x.EmployeeId == dto.EmployeeId).FirstAsync()).EmployeeCode;
 
                 var check = await db.AttendanceLogs
                     .Where(x =>
-                        x.EmployeeId == dto.EmployeeId &&
+                        (empFlag == true ? x.EmployeeId == dto.sid : x.UserId == dto.sid) &&
                              (
                                  (x.TimeInAt.HasValue && x.TimeInAt.Value.Date == checkDate) ||
                                  (x.TimeInMobile.HasValue && x.TimeInMobile.Value.Date == checkDate) ||
@@ -325,7 +348,8 @@ namespace PPFAttendanceApi.Controllers
                         TimeInLocationName = dto.TimeInLocationName,
                         TimeInBy = "Attendance Manager",
                         AttendanceStatusId = 1,
-                        EmployeeId = dto.EmployeeId,
+                        EmployeeId = empFlag == true ? dto.sid : null,
+                        UserId = empFlag == false ? dto.sid : null,
                         TimeInType = dto.TimeInType,
                         AttendanceInImagePath = dto.AttendanceInImage != null ? await UploadDoc.UploadEmployeeAttendaceImage(dto.AttendanceInImage, employeeCode) : "no image provided"
                     };
