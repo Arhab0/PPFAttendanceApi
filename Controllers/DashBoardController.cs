@@ -16,34 +16,22 @@ namespace PPFAttendanceApi.Controllers
         private readonly ClaimsService claims = _claims;
 
         [HttpGet("GetDashboardData")]
-        public async Task<IActionResult> GetDashboardData(string filter = "today", DateTime? from = null, DateTime? to = null)
+        public async Task<IActionResult> GetDashboardData(
+                                        string filter = "today",
+                                        DateTime? date = null,
+                                        int branchId = 0,
+                                        int departmentId = 0,
+                                        int Page = 1,
+                                        int PageSize = 10
+                                                         )
         {
             try
             {
                 var roleId = int.Parse(claims["RoleId"]);
                 var sid = int.Parse(claims["sid"]);
 
-                int? managerId = roleId == 2 && sid > 0 ? sid : null;
-
-
                 var today = DateTime.Now.Date;
                 var tomorrow = today.AddDays(1);
-
-                var employeeQuery = db.Employees.AsNoTracking().Where(e => e.IsActive == true);
-
-                int totalStaffCount = await employeeQuery.CountAsync();
-
-
-                var todayLogsQuery = db.AttendanceLogs.AsNoTracking()
-                    .Where(a => (a.TimeInAt != null && a.TimeInAt >= today && a.TimeInAt < tomorrow) || ((a.TimeInMobile != null && a.TimeInMobile >= today && a.TimeInMobile < tomorrow)) || ((a.TimeInImage != null && a.TimeInImage >= today && a.TimeInImage < tomorrow)));
-
-                todayLogsQuery = todayLogsQuery.Where(a =>
-                    (a.EmployeeId != null && a.Employee.IsActive == true)
-                );
-                
-                var presentToday = await todayLogsQuery.Select(a => a.EmployeeId).Distinct().CountAsync();
-                var checkedIn = await todayLogsQuery.CountAsync();
-                var checkedOut = await todayLogsQuery.Where(a => (a.TimeOutAt != null) || (a.TimeOutMobile != null) || (a.TimeOutImage != null)).CountAsync();
 
                 DateTime rangeStart, rangeEnd;
 
@@ -54,76 +42,107 @@ namespace PPFAttendanceApi.Controllers
                         rangeEnd = today;
                         break;
 
-                    case "last7days":
-                        rangeStart = today.AddDays(-6);
-                        rangeEnd = tomorrow;
+                    case "date":
+                        if (date == null)
+                            return BadRequest("'date' is required for filter.");
+                        rangeStart = date.Value.Date;
+                        rangeEnd = date.Value.Date.AddDays(1);
                         break;
 
-                    case "thismonth":
-                        rangeStart = new DateTime(today.Year, today.Month, 1);
-                        rangeEnd = tomorrow;
-                        break;
-
-                    case "custom":
-                        if (from == null || to == null)
-                            return BadRequest("Both 'from' and 'to' are required for custom filter.");
-
-                        rangeStart = from.Value.Date;
-                        rangeEnd = to.Value.Date.AddDays(1);
-
-                        if (rangeStart > rangeEnd)
-                            return BadRequest("'from' date cannot be after 'to' date.");
-                        break;
-
-                    default:
+                    default: // "today"
                         rangeStart = today;
                         rangeEnd = tomorrow;
                         break;
                 }
 
-                var recordsQuery = db.AttendanceLogs
-                    .AsNoTracking()
-                    .Where(a => (a.EmployeeId != null && a.Employee.IsActive == true) &&
-                        (a.TimeInAt.HasValue && (a.TimeInAt >= rangeStart && a.TimeInAt < rangeEnd)) ||
-                        (a.TimeInMobile.HasValue && (a.TimeInMobile >= rangeStart && a.TimeInMobile < rangeEnd)) ||
-                        (a.TimeInImage.HasValue && (a.TimeInImage >= rangeStart && a.TimeInImage < rangeEnd))
-                    );
+                var employeeQuery = db.Employees.AsNoTracking()
+                    .Where(e => e.IsActive == true
+                        && (branchId == 0 || e.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
+                        && (departmentId == 0 || e.EmpUserBrDeptMappings.Any(m => m.DepartmentId == departmentId)));
 
-                var records = await recordsQuery
-                    .OrderByDescending(a => a.TimeInAt ?? a.TimeInMobile ?? a.TimeInImage)
-                    .Select(a => new
+                int totalStaffCount = await employeeQuery.CountAsync();
+
+                var todayLogsQuery = db.AttendanceLogs.AsNoTracking()
+                    .Where(a => a.EmployeeId != null && a.Employee.IsActive == true
+                        && (branchId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
+                        && (departmentId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.DepartmentId == departmentId))
+                        && (
+                            (a.TimeInAt != null && a.TimeInAt >= today && a.TimeInAt < tomorrow) ||
+                            (a.TimeInMobile != null && a.TimeInMobile >= today && a.TimeInMobile < tomorrow) ||
+                            (a.TimeInImage != null && a.TimeInImage >= today && a.TimeInImage < tomorrow)
+                        ));
+
+                var presentToday = await todayLogsQuery.Select(a => a.EmployeeId).Distinct().CountAsync();
+                var checkedIn = await todayLogsQuery.CountAsync();
+                var checkedOut = await todayLogsQuery
+                    .Where(a => a.TimeOutAt != null || a.TimeOutMobile != null || a.TimeOutImage != null)
+                    .CountAsync();
+
+
+                IQueryable<AttendanceLog> attendance = db.AttendanceLogs.AsNoTracking()
+                    .Where(a => a.EmployeeId != null && a.Employee.IsActive == true
+                        && (branchId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
+                        && (departmentId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.DepartmentId == departmentId))
+                        && (
+                            (a.TimeInAt.HasValue && a.TimeInAt >= rangeStart && a.TimeInAt < rangeEnd) ||
+                            (a.TimeInMobile.HasValue && a.TimeInMobile >= rangeStart && a.TimeInMobile < rangeEnd) ||
+                            (a.TimeInImage.HasValue && a.TimeInImage >= rangeStart && a.TimeInImage < rangeEnd)
+                        ));
+
+                var rawLogs = await attendance
+                            .OrderByDescending(a => a.TimeInAt ?? a.TimeInMobile ?? a.TimeInImage)
+                            .Include(a => a.Employee)
+                                .ThenInclude(e => e.ShiftType)
+                            .Include(a => a.Employee)
+                                .ThenInclude(e => e.EmpUserBrDeptMappings)
+                                    .ThenInclude(m => m.Branch)
+                            .Include(a => a.Employee)
+                                .ThenInclude(e => e.EmpUserBrDeptMappings)
+                                    .ThenInclude(m => m.Department)
+                            .Include(a => a.AttendanceStatus)
+                            .Skip((Page - 1) * PageSize)
+                            .Take(PageSize)
+                            .ToListAsync();
+
+                var records = rawLogs.Select(log =>
+                {
+                    var date_in = log.TimeInAt ?? log.TimeInMobile ?? log.TimeInImage;
+                    var date_out = log.TimeOutAt ?? log.TimeOutMobile ?? log.TimeOutImage;
+
+                    TimeSpan? workedDuration = (date_in.HasValue && date_out.HasValue)
+                        ? date_out.Value - date_in.Value
+                        : null;
+
+                    string workedHours = workedDuration.HasValue
+                        ? $"{(int)workedDuration.Value.TotalHours}h {workedDuration.Value.Minutes}m"
+                        : "Incomplete";
+
+                    double difference = workedDuration.HasValue
+                        ? workedDuration.Value.TotalHours - (log.Employee.ShiftType?.ShiftHours ?? 0)
+                        : 0;
+
+                    return new
                     {
-                        a.EmployeeId,
-                        a.Employee.EmployeeName,
-                        a.Employee.EmployeeEmail,
-                        ProfileImage = a.Employee.EmployeeFiles.Select(f => $"/images/employee/{a.Employee.EmployeeCode}/{f.FilePath}" ).FirstOrDefault(),
-                        CheckIn = a.TimeInAt ?? a.TimeInMobile ?? a.TimeInImage,
-                        CheckOut = a.TimeOutAt ?? a.TimeOutMobile ?? a.TimeOutImage,
-                        LocationIn = a.AttendanceInLat != null && a.AttendanceInLon != null
-                            ? new
-                            {
-                                Lat = a.AttendanceInLat,
-                                Lon = a.AttendanceInLon,
-                                Type = a.TimeInLocationName
-                            }
-                            : null,
-                        LocationOut = a.AttendanceOutLat != null && a.AttendanceOutLon != null
-                            ? new
-                            {
-                                Lat = a.AttendanceOutLat,
-                                Lon = a.AttendanceOutLon,
-                                Type = a.TimeOutLocationName
-                            }
-                            : null,
-                        Status = a.AttendanceStatus != null ? a.AttendanceStatus.Status : null,
-                        StatusId = a.AttendanceStatusId,
-                        AttendanceInImagePath = a.AttendanceInImagePath != null ?
-                                                        $"/images/employeeAttendance/{a.Employee.EmployeeCode}/{GetDate(a.TimeInAt,a.TimeInMobile,a.TimeInImage)}/{a.AttendanceInImagePath}" : null,
-
-                        AttendanceOutImagePath = a.AttendanceOutImagePath != null ?
-                                                        $"/images/employeeAttendance/{a.Employee.EmployeeCode}/{GetDate(a.TimeOutAt, a.TimeOutMobile, a.TimeOutImage)}/{a.AttendanceOutImagePath}" : null,
-                    })
-                    .ToListAsync();
+                        log.EmployeeId,
+                        log.Employee.EmployeeName,
+                        log.Employee.EmployeeCode,
+                        BranchName = log.Employee.EmpUserBrDeptMappings
+                            .Where(x => x.IsPrimaryBranch == true)
+                            .Select(x => x.Branch.BranchName)
+                            .FirstOrDefault(),
+                        DepartmentName = log.Employee.EmpUserBrDeptMappings
+                            .Where(x => x.IsPrimaryBranch == true)
+                            .Select(x => x.Department.DepartmentName)
+                            .FirstOrDefault(),
+                        CheckInAt = date_in?.ToShortTimeString(),
+                        CheckInLocation = log.TimeInLocationName,
+                        CheckOutAt = date_out?.ToShortTimeString(),
+                        CheckOutLocation = log.TimeOutLocationName,
+                        log.Employee.ShiftType?.ShiftHours,
+                        PresentedHours = workedHours,
+                        Difference = difference,
+                    };
+                }).ToList();
 
                 return Ok(new
                 {

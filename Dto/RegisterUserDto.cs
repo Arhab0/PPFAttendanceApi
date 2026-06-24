@@ -23,5 +23,6 @@
     {
         public int BranchId { get; set; } = new();
         public int? DepartmentId { get; set; } = new();
+        public bool IsPrimaryBranch { get; set; }
     }
 }

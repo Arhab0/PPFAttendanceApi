@@ -13,11 +13,11 @@ public partial class ShiftType
 
     public bool IsActive { get; set; }
 
-    public string ShiftHours { get; set; }
-
     public TimeOnly? ShiftStartAt { get; set; }
 
     public TimeOnly? ShiftEndAt { get; set; }
+
+    public int ShiftHours { get; set; }
 
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
 }

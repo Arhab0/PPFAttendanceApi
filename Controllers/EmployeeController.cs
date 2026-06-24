@@ -30,6 +30,11 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest(new { statusCode = 400, message = "Employee with this Email already exists." });
                 }
 
+                if (dto.BrDeptMapping.Count(x => x.IsPrimaryBranch) > 1)
+                {
+                    return BadRequest(new { statusCode = 400, message = "Primary branch can only be one." });
+                }
+
                 if (dto.BrDeptMapping.Count == 0)
                 {
                     return BadRequest(new { statusCode = 400, message = "Required entries are missing." });
@@ -90,7 +95,8 @@ namespace PPFAttendanceApi.Controllers
                     {
                         EmployeeId = employee.EmployeeId,
                         BranchId = item.BranchId,
-                        DepartmentId = item.DepartmentId
+                        DepartmentId = item.DepartmentId,
+                        IsPrimaryBranch = item.IsPrimaryBranch
                     };
                     employeeBrDeptMappings.Add(mapping);
                 }
@@ -144,6 +150,11 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest(new { statusCode = 400, message = "Employee with this Email already exists." });
                 }
 
+                if (dto.BrDeptMapping.Count(x => x.IsPrimaryBranch) > 1)
+                {
+                    return BadRequest(new { statusCode = 400, message = "Primary branch can only be one." });
+                }
+
                 if (dto.BrDeptMapping.Count == 0)
                 {
                     return BadRequest(new { statusCode = 400, message = "Required entries are missing." });
@@ -183,7 +194,8 @@ namespace PPFAttendanceApi.Controllers
                     {
                         EmployeeId = employee.EmployeeId,
                         BranchId = item.BranchId,
-                        DepartmentId = item.DepartmentId
+                        DepartmentId = item.DepartmentId,
+                        IsPrimaryBranch = item.IsPrimaryBranch,
                     };
                     employeeBrDeptMappings.Add(mapping);
                 }
@@ -217,15 +229,22 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpGet("GetAllEmployees")]
-        public async Task<IActionResult> GetAllEmployees()
+        public async Task<IActionResult> GetAllEmployees(string? EmployeeName, int BranchId = 0, int DepartmentId = 0, int Page = 1, int PageSize = 20)
         {
             try
             {
                 var data = await db.Employees.AsNoTracking()
+                            .Where(e =>
+                                (string.IsNullOrEmpty(EmployeeName) || e.EmployeeName.ToLower().Contains(EmployeeName.ToLower())) &&
+                                (BranchId == 0 || e.EmpUserBrDeptMappings.Any(x => x.BranchId == BranchId)) &&
+                                (DepartmentId == 0 || e.EmpUserBrDeptMappings.Any(x => x.DepartmentId == DepartmentId))
+                             )
                             .Include(x => x.EmpUserBrDeptMappings)
+                                .ThenInclude(x => x.Branch)
                             .Include(x => x.EmployeeType)
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
+                            .Include(x => x.EmployeeFiles)
                             .Select(x => new
                             {
                                 x.EmployeeId,
@@ -243,8 +262,15 @@ namespace PPFAttendanceApi.Controllers
                                 ShiftType = x.ShiftType.Type,
                                 x.PaymentTypeId,
                                 PaymentType = x.PaymentType.Type,
-                                mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName }).ToList()
-                            }).ToListAsync();
+                                MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x=>x.Branch.BranchName).FirstOrDefault(),
+                                OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
+                                mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName, x.IsPrimaryBranch }).ToList(),
+                                IsFaceRegistered = x.EmployeeFiles.Any()
+                            })
+                            .OrderBy(x => x.EmployeeId)
+                            .Skip((Page - 1) * PageSize)
+                            .Take(PageSize)
+                            .ToListAsync();
 
                 return Json(data);
             }
@@ -255,11 +281,14 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpGet("GetEmployeeById")]
-        public async Task<IActionResult> GetEmployeeById(int employeeId)
+        public async Task<IActionResult> GetEmployeeById(int employeeId, DateTime? fromDate, DateTime? toDate, int Page = 1, int PageSize = 15)
         {
             try
             {
-                var data = await db.Employees.AsNoTracking()
+                var startDate = fromDate?.Date ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                var endDate = toDate?.Date.AddDays(1) ?? startDate.AddMonths(1);
+
+                var data = await db.Employees
                             .Where(x => x.EmployeeId == employeeId)
                             .Include(x => x.EmpUserBrDeptMappings)
                             .Include(x => x.EmployeeType)
@@ -283,11 +312,59 @@ namespace PPFAttendanceApi.Controllers
                                 ShiftType = x.ShiftType.Type,
                                 x.PaymentTypeId,
                                 PaymentType = x.PaymentType.Type,
-                                mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName }).ToList()
+                                MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
+                                Department = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).First().Department.DepartmentName,
+                                mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName, x.IsPrimaryBranch }).ToList(),
+                                IsFaceRegistered = x.EmployeeFiles.Any()
                             })
                             .FirstOrDefaultAsync();
 
-                return Json(data);
+                IQueryable<AttendanceLog> query = db.AttendanceLogs.AsNoTracking()
+                    .Where(x => x.EmployeeId == employeeId
+                        && (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage) >= startDate
+                        && (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage) < endDate
+                    );
+
+                var logs = await query
+                    .OrderBy(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
+                    .Skip((Page - 1) * PageSize)
+                    .Take(PageSize)
+                    .ToListAsync();
+
+                var attendance = logs.Select(log =>
+                {
+                    var date_in = log.TimeInAt ?? log.TimeInMobile ?? log.TimeInImage;
+                    var date_out = log.TimeOutAt ?? log.TimeOutMobile ?? log.TimeOutImage;
+                    TimeSpan? workedDuration = (date_in.HasValue && date_out.HasValue)
+                                            ? date_out.Value - date_in.Value
+                                            : null;
+
+                    string workedHours = workedDuration.HasValue
+                        ? $"{(int)workedDuration.Value.TotalHours}h {workedDuration.Value.Minutes}m"
+                        : "Incomplete";
+
+                    double Difference = workedDuration.HasValue ? workedDuration.Value.TotalHours - log.Employee.ShiftType.ShiftHours : 0;
+
+                    return new
+                    {
+                        AttendanceDate = date_in?.Date,
+                        CheckInAt = date_in?.ToShortTimeString(),
+                        CheckInLocation = log.TimeInLocationName,
+                        CheckOutAt = date_out?.ToShortTimeString(),
+                        CheckOutLocation = log.TimeOutLocationName,
+                        log.Employee.ShiftType.ShiftHours,
+                        PresentedHours = workedHours,
+                        Difference,
+                    };
+                }).ToList();
+
+                var FinalResult = new
+                {
+                    data,
+                    attendance
+                };
+
+                return Json(FinalResult);
             }
             catch (Exception e)
             {
@@ -296,7 +373,7 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpPost("ChangeEmployeeActivationStatus")]
-        public async Task<IActionResult> ChangeEmployeeActivationStatus(int employeeId,bool status)
+        public async Task<IActionResult> ChangeEmployeeActivationStatus(int employeeId, bool status)
         {
             try
             {

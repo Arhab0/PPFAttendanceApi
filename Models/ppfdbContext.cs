@@ -313,6 +313,7 @@ public partial class ppfdbContext : DbContext
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.DepartmentId).HasColumnName("department_id");
             entity.Property(e => e.EmployeeId).HasColumnName("employee_id");
+            entity.Property(e => e.IsPrimaryBranch).HasColumnName("is_primary_branch");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.Branch).WithMany(p => p.EmpUserBrDeptMappings)
@@ -551,9 +552,7 @@ public partial class ppfdbContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
             entity.Property(e => e.ShiftEndAt).HasColumnName("shift_end_at");
-            entity.Property(e => e.ShiftHours)
-                .HasColumnType("character varying")
-                .HasColumnName("shift_hours");
+            entity.Property(e => e.ShiftHours).HasColumnName("shift_hours");
             entity.Property(e => e.ShiftStartAt).HasColumnName("shift_start_at");
             entity.Property(e => e.Type)
                 .IsRequired()

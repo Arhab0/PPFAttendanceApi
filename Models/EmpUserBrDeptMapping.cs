@@ -17,6 +17,8 @@ public partial class EmpUserBrDeptMapping
 
     public int BranchId { get; set; }
 
+    public bool? IsPrimaryBranch { get; set; }
+
     public virtual Branch Branch { get; set; }
 
     public virtual Department Department { get; set; }
