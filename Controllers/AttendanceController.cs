@@ -315,13 +315,15 @@ namespace PPFAttendanceApi.Controllers
 
                 }
 
-                var checkDate = (dto.TimeInAt != null ? dto.TimeInAt : dto.TimeInMobile != null ? dto.TimeInMobile : dto.TimeInImage)?.Date
-                                ?? DateTime.UtcNow.Date;
+                var checkDate = (dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage
+                               ?? dto.TimeOutAt ?? dto.TimeOutMobile ?? dto.TimeOutImage)?.Date
+                              ?? DateTime.Now.Date;
 
 
                 var check = await db.AttendanceLogs
                     .Where(x =>
                         (empFlag == true ? x.EmployeeId == dto.sid : x.UserId == dto.sid) &&
+                        x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null &&
                              (
                                  (x.TimeInAt.HasValue && x.TimeInAt.Value.Date == checkDate) ||
                                  (x.TimeInMobile.HasValue && x.TimeInMobile.Value.Date == checkDate) ||
