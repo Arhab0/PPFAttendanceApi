@@ -263,6 +263,7 @@ namespace PPFAttendanceApi.Controllers
                                 x.PaymentTypeId,
                                 PaymentType = x.PaymentType.Type,
                                 MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x=>x.Branch.BranchName).FirstOrDefault(),
+                                DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
                                 OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
                                 mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName, x.IsPrimaryBranch }).ToList(),
                                 IsFaceRegistered = x.EmployeeFiles.Any()
