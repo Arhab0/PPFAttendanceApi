@@ -2,7 +2,8 @@
 {
     public class AttendanceDto
     {
-        public int? sid { get; set; }
+        public string Action { get; set; }
+        public int sid { get; set; }
         public string? TimeInLat { get; set; }
         public string? TimeInLon { get; set; }
         public string? TimeInLocationName { get; set; }

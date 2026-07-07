@@ -146,111 +146,77 @@ namespace PPFAttendanceApi.Controllers
         [HttpPost("MarkAttendance")]
         public async Task<IActionResult> MarkAttendance(AttendanceDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.Action) ||
+                (dto.Action != "TimeIn" && dto.Action != "TimeOut"))
+            {
+                return BadRequest(new { statusCode = 400, message = "Action must be 'TimeIn' or 'TimeOut'." });
+            }
+
             await db.Database.BeginTransactionAsync();
             try
             {
                 var sid = int.Parse(claims["sid"]);
                 var roleId = int.Parse(claims["RoleId"]);
+                bool empFlag = roleId == 3;
 
-                var checkDate = (dto.TimeInAt != null ? dto.TimeInAt : dto.TimeInMobile != null ? dto.TimeInMobile : dto.TimeInImage)?.Date
-                                ?? DateTime.UtcNow.Date;
-
-                if (roleId == 3)
+                string employeeCode = "";
+                if (empFlag)
                 {
-                    var employeeCode = (await db.Employees.AsNoTracking().Where(x => x.EmployeeId == sid).FirstAsync()).EmployeeCode;
-                    var check = await db.AttendanceLogs
-                        .Where(x =>
-                            x.EmployeeId == sid &&
-                                 (
-                                     (x.TimeInAt.HasValue && x.TimeInAt.Value.Date == checkDate) ||
-                                     (x.TimeInMobile.HasValue && x.TimeInMobile.Value.Date == checkDate) ||
-                                     (x.TimeInImage.HasValue && x.TimeInImage.Value.Date == checkDate)
-                                 )
-                             )
-                        .FirstOrDefaultAsync();
+                    var employee = await db.Employees.AsNoTracking().Where(x => x.EmployeeId == sid).FirstOrDefaultAsync();
+                    if (employee == null)
+                        return BadRequest(new { statusCode = 400, message = "Employee not found." });
 
-                    if (check != null && (check.TimeInAt != null || check.TimeInMobile != null || check.TimeInImage != null) && (check.TimeOutAt != null || check.TimeOutMobile != null || check.TimeOutImage != null))
-                        return BadRequest(new { statusCode = 400, message = "Attendance already marked for today." });
-
-                    if (check == null)
-                    {
-                        if (string.IsNullOrEmpty(dto.TimeInLat) || string.IsNullOrEmpty(dto.TimeInLon) || dto.AttendanceInImage == null || string.IsNullOrEmpty(dto.TimeInLocationName))
-                            return BadRequest(new { statusCode = 400, message = "Missing required fields for time in." });
-
-                        var log = new AttendanceLog
-                        {
-                            AttendanceInLat = dto.TimeInLat,
-                            AttendanceInLon = dto.TimeInLon,
-                            TimeInAt = dto.TimeInAt ?? null,
-                            TimeInMobile = dto.TimeInMobile ?? null,
-                            TimeInImage = dto.TimeInImage ?? null,
-                            TimeInLocationName = dto.TimeInLocationName,
-                            TimeInBy = "Self",
-                            AttendanceStatusId = 1,
-                            EmployeeId = sid,
-                            TimeInType = dto.TimeInType,
-                            AttendanceInImagePath = dto.AttendanceInImage != null ? await UploadDoc.UploadEmployeeAttendaceImage(dto.AttendanceInImage, employeeCode) : "no image provided"
-                        };
-
-                        await db.AttendanceLogs.AddAsync(log);
-                        await db.SaveChangesAsync();
-                        await db.Database.CommitTransactionAsync();
-                        return Json(new { statusCode = 200, message = "Time in marked successfully." });
-                    }
-
-                    if (string.IsNullOrEmpty(dto.TimeOutLat) || string.IsNullOrEmpty(dto.TimeOutLon) || dto.AttendanceOutImage == null
-                        || string.IsNullOrEmpty(dto.TimeOutLocationName))
-                        return BadRequest(new { statusCode = 400, message = "Missing required fields for time out." });
-
-                    check.AttendanceOutLat = dto.TimeOutLat;
-                    check.AttendanceOutLon = dto.TimeOutLon;
-                    check.TimeOutAt = dto.TimeOutAt ?? null;
-                    check.TimeOutMobile = dto.TimeOutMobile ?? null;
-                    check.TimeOutImage = dto.TimeOutImage ?? null;
-                    check.TimeOutLocationName = dto.TimeOutLocationName;
-                    check.TimeOutBy = "Self";
-                    check.AttendanceStatusId = 2;
-                    check.TimeOutType = dto.TimeOutType;
-                    check.AttendanceOutImagePath = dto.AttendanceOutImage != null ? await UploadDoc.UploadEmployeeAttendaceImage(dto.AttendanceOutImage, employeeCode) : "no image provided";
-
-
-                    await db.SaveChangesAsync();
-                    await db.Database.CommitTransactionAsync();
-                    return Json(new { statusCode = 200, message = "Time out marked successfully." });
+                    employeeCode = employee.EmployeeCode;
                 }
 
-                var check_ = await db.AttendanceLogs
+                // Date-agnostic lookup: find the most recent OPEN session for this person,
+                // regardless of which calendar date it started on. Fixes overnight shifts
+                // (e.g. 8pm-4am) and missed/late checkouts.
+                var openSession = await db.AttendanceLogs
                     .Where(x =>
-                        x.UserId == sid &&
-                            (
-                                 (x.TimeInAt.HasValue && x.TimeInAt.Value.Date == checkDate) ||
-                                 (x.TimeInMobile.HasValue && x.TimeInMobile.Value.Date == checkDate) ||
-                                 (x.TimeInImage.HasValue && x.TimeInImage.Value.Date == checkDate)
-                            )
-                         )
+                        (empFlag ? x.EmployeeId == sid : x.UserId == sid) &&
+                        x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null)
+                    .OrderByDescending(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
                     .FirstOrDefaultAsync();
 
-                if (check_ != null && (check_.TimeInAt != null || check_.TimeInMobile != null || check_.TimeInImage != null) && (check_.TimeOutAt != null || check_.TimeOutMobile != null || check_.TimeOutImage != null))
-                    return BadRequest(new { statusCode = 400, message = "Attendance already marked for today." });
-
-                if (check_ == null)
+                if (dto.Action == "TimeIn")
                 {
-                    if (string.IsNullOrEmpty(dto.TimeInLat) || string.IsNullOrEmpty(dto.TimeInLon) || dto.AttendanceInImage == null || string.IsNullOrEmpty(dto.TimeInLocationName))
+                    if (openSession != null)
+                    {
+                        return BadRequest(new
+                        {
+                            statusCode = 400,
+                            message = $"You already have an open session since " +
+                                $"{(openSession.TimeInAt ?? openSession.TimeInMobile ?? openSession.TimeInImage):yyyy-MM-dd HH:mm}. " +
+                                $"Please check out first."
+                        });
+                    }
+
+                    if (string.IsNullOrEmpty(dto.TimeInLat) || string.IsNullOrEmpty(dto.TimeInLon) ||
+                        dto.AttendanceInImage == null || string.IsNullOrEmpty(dto.TimeInLocationName))
                         return BadRequest(new { statusCode = 400, message = "Missing required fields for time in." });
+
+                    if (dto.TimeInAt == null && dto.TimeInMobile == null && dto.TimeInImage == null)
+                        return BadRequest(new { statusCode = 400, message = "At least one time-in timestamp source is required." });
 
                     var log = new AttendanceLog
                     {
                         AttendanceInLat = dto.TimeInLat,
                         AttendanceInLon = dto.TimeInLon,
-                        TimeInAt = dto.TimeInAt ?? null,
-                        TimeInMobile = dto.TimeInMobile ?? null,
-                        TimeInImage = dto.TimeInImage ?? null,
+                        TimeInAt = dto.TimeInAt,
+                        TimeInMobile = dto.TimeInMobile,
+                        TimeInImage = dto.TimeInImage,
                         TimeInLocationName = dto.TimeInLocationName,
                         TimeInBy = "Self",
                         AttendanceStatusId = 1,
-                        UserId = sid,
+                        EmployeeId = empFlag ? sid : null,
+                        UserId = empFlag ? null : sid,
                         TimeInType = dto.TimeInType,
-                        AttendanceInImagePath = dto.AttendanceInImage != null ? await UploadDoc.UploadStaffAttendaceImage(dto.AttendanceInImage, sid.ToString()) : "no image provided"
+                        AttendanceInImagePath = dto.AttendanceInImage != null
+                            ? (empFlag
+                                ? await UploadDoc.UploadEmployeeAttendaceImage(dto.AttendanceInImage, employeeCode)
+                                : await UploadDoc.UploadStaffAttendaceImage(dto.AttendanceInImage, sid.ToString()))
+                            : "no image provided"
                     };
 
                     await db.AttendanceLogs.AddAsync(log);
@@ -258,26 +224,39 @@ namespace PPFAttendanceApi.Controllers
                     await db.Database.CommitTransactionAsync();
                     return Json(new { statusCode = 200, message = "Time in marked successfully." });
                 }
+                else // dto.Action == "TimeOut"
+                {
+                    if (openSession == null)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "No open session found to check out from." });
+                    }
 
-                if (string.IsNullOrEmpty(dto.TimeOutLat) || string.IsNullOrEmpty(dto.TimeOutLon) || dto.AttendanceOutImage == null
-                    || string.IsNullOrEmpty(dto.TimeOutLocationName))
-                    return BadRequest(new { statusCode = 400, message = "Missing required fields for time out." });
+                    if (string.IsNullOrEmpty(dto.TimeOutLat) || string.IsNullOrEmpty(dto.TimeOutLon) ||
+                        dto.AttendanceOutImage == null || string.IsNullOrEmpty(dto.TimeOutLocationName))
+                        return BadRequest(new { statusCode = 400, message = "Missing required fields for time out." });
 
-                check_.AttendanceOutLat = dto.TimeOutLat;
-                check_.AttendanceOutLon = dto.TimeOutLon;
-                check_.TimeOutAt = dto.TimeOutAt ?? null;
-                check_.TimeOutMobile = dto.TimeOutMobile ?? null;
-                check_.TimeOutImage = dto.TimeOutImage ?? null;
-                check_.TimeOutLocationName = dto.TimeOutLocationName;
-                check_.TimeOutBy = "Self";
-                check_.AttendanceStatusId = 2;
-                check_.TimeOutType = dto.TimeOutType;
-                check_.AttendanceOutImagePath = dto.AttendanceOutImage != null ? await UploadDoc.UploadStaffAttendaceImage(dto.AttendanceOutImage, sid.ToString()) : "no image provided";
+                    if (dto.TimeOutAt == null && dto.TimeOutMobile == null && dto.TimeOutImage == null)
+                        return BadRequest(new { statusCode = 400, message = "At least one time-out timestamp source is required." });
 
+                    openSession.AttendanceOutLat = dto.TimeOutLat;
+                    openSession.AttendanceOutLon = dto.TimeOutLon;
+                    openSession.TimeOutAt = dto.TimeOutAt;
+                    openSession.TimeOutMobile = dto.TimeOutMobile;
+                    openSession.TimeOutImage = dto.TimeOutImage;
+                    openSession.TimeOutLocationName = dto.TimeOutLocationName;
+                    openSession.TimeOutBy = "Self";
+                    openSession.AttendanceStatusId = 2;
+                    openSession.TimeOutType = dto.TimeOutType;
+                    openSession.AttendanceOutImagePath = dto.AttendanceOutImage != null
+                        ? (empFlag
+                            ? await UploadDoc.UploadEmployeeAttendaceImage(dto.AttendanceOutImage, employeeCode)
+                            : await UploadDoc.UploadStaffAttendaceImage(dto.AttendanceOutImage, sid.ToString()))
+                        : "no image provided";
 
-                await db.SaveChangesAsync();
-                await db.Database.CommitTransactionAsync();
-                return Json(new { statusCode = 200, message = "Time out marked successfully." });
+                    await db.SaveChangesAsync();
+                    await db.Database.CommitTransactionAsync();
+                    return Json(new { statusCode = 200, message = "Time out marked successfully." });
+                }
             }
             catch (Exception ex)
             {
@@ -289,21 +268,33 @@ namespace PPFAttendanceApi.Controllers
         [HttpPost("MarkAttendanceTablet")]
         public async Task<IActionResult> MarkAttendanceTablet(AttendanceDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.Action) ||
+                (dto.Action != "TimeIn" && dto.Action != "TimeOut"))
+            {
+                return BadRequest(new { statusCode = 400, message = "Action must be 'TimeIn' or 'TimeOut'." });
+            }
+
             await db.Database.BeginTransactionAsync();
             try
             {
                 var roleId = int.Parse(claims["RoleId"]);
                 bool empFlag = false;
                 string employeeCode = "";
+
                 var empCheck = await db.Employees.Where(x => x.EmployeeId == dto.sid).FirstOrDefaultAsync();
 
                 if (empCheck == null)
                 {
                     var staffCheck = await db.Users.Where(x => x.UserId == dto.sid).FirstOrDefaultAsync();
 
-                    if (staffCheck?.IsActive == false)
+                    if (staffCheck == null)
                     {
-                        return BadRequest(new { statusCode = 400, message = "Unable to mark attendance. User is deactivated."});
+                        return BadRequest(new { statusCode = 400, message = "No employee or user found with the given ID." });
+                    }
+
+                    if (staffCheck.IsActive == false)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "Unable to mark attendance. User is deactivated." });
                     }
                 }
                 else
@@ -315,48 +306,51 @@ namespace PPFAttendanceApi.Controllers
 
                     employeeCode = empCheck.EmployeeCode;
                     empFlag = true;
-
                 }
 
-                var checkDate = (dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage
-                               ?? dto.TimeOutAt ?? dto.TimeOutMobile ?? dto.TimeOutImage)?.Date
-                              ?? DateTime.Now.Date;
-
-
-                var check = await db.AttendanceLogs
+                var openSession = await db.AttendanceLogs
                     .Where(x =>
-                        (empFlag == true ? x.EmployeeId == dto.sid : x.UserId == dto.sid) &&
-                        x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null &&
-                             (
-                                 (x.TimeInAt.HasValue && x.TimeInAt.Value.Date == checkDate) ||
-                                 (x.TimeInMobile.HasValue && x.TimeInMobile.Value.Date == checkDate) ||
-                                 (x.TimeInImage.HasValue && x.TimeInImage.Value.Date == checkDate)
-                             )
-                         )
+                        (empFlag ? x.EmployeeId == dto.sid : x.UserId == dto.sid) &&
+                        x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null)
+                    .OrderByDescending(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
                     .FirstOrDefaultAsync();
 
-                if (check != null && (check.TimeInAt != null || check.TimeInMobile != null || check.TimeInImage != null) && (check.TimeOutAt != null || check.TimeOutMobile != null || check.TimeOutImage != null))
-                    return BadRequest(new { statusCode = 400, message = "Attendance already marked for today." });
-
-                if (check == null)
+                if (dto.Action == "TimeIn")
                 {
-                    if (string.IsNullOrEmpty(dto.TimeInLat) || string.IsNullOrEmpty(dto.TimeInLon) || dto.AttendanceInImage == null || string.IsNullOrEmpty(dto.TimeInLocationName))
+                    if (openSession != null)
+                    {
+                        return BadRequest(new
+                        {
+                            statusCode = 400,
+                            message = $"You already have an open session since " +
+                                $"{(openSession.TimeInAt ?? openSession.TimeInMobile ?? openSession.TimeInImage):yyyy-MM-dd HH:mm}. " +
+                                $"Please check out first."
+                        });
+                    }
+
+                    if (string.IsNullOrEmpty(dto.TimeInLat) || string.IsNullOrEmpty(dto.TimeInLon) ||
+                        dto.AttendanceInImage == null || string.IsNullOrEmpty(dto.TimeInLocationName))
                         return BadRequest(new { statusCode = 400, message = "Missing required fields for time in." });
+
+                    if (dto.TimeInAt == null && dto.TimeInMobile == null && dto.TimeInImage == null)
+                        return BadRequest(new { statusCode = 400, message = "At least one time-in timestamp source is required." });
 
                     var log = new AttendanceLog
                     {
                         AttendanceInLat = dto.TimeInLat,
                         AttendanceInLon = dto.TimeInLon,
-                        TimeInAt = dto.TimeInAt ?? null,
-                        TimeInMobile = dto.TimeInMobile ?? null,
-                        TimeInImage = dto.TimeInImage ?? null,
+                        TimeInAt = dto.TimeInAt,
+                        TimeInMobile = dto.TimeInMobile,
+                        TimeInImage = dto.TimeInImage,
                         TimeInLocationName = dto.TimeInLocationName,
                         TimeInBy = "Attendance Manager",
                         AttendanceStatusId = 1,
-                        EmployeeId = empFlag == true ? dto.sid : null,
-                        UserId = empFlag == false ? dto.sid : null,
+                        EmployeeId = empFlag ? dto.sid : null,
+                        UserId = empFlag ? null : dto.sid,
                         TimeInType = dto.TimeInType,
-                        AttendanceInImagePath = dto.AttendanceInImage != null ? await UploadDoc.UploadEmployeeAttendaceImage(dto.AttendanceInImage, employeeCode) : "no image provided"
+                        AttendanceInImagePath = dto.AttendanceInImage != null
+                            ? await UploadDoc.UploadEmployeeAttendaceImage(dto.AttendanceInImage, employeeCode)
+                            : "no image provided"
                     };
 
                     await db.AttendanceLogs.AddAsync(log);
@@ -364,24 +358,37 @@ namespace PPFAttendanceApi.Controllers
                     await db.Database.CommitTransactionAsync();
                     return Json(new { statusCode = 200, message = "Time in marked successfully." });
                 }
+                else // dto.Action == "TimeOut"
+                {
+                    if (openSession == null)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "No open session found to check out from." });
+                    }
 
-                if (string.IsNullOrEmpty(dto.TimeOutLat) || string.IsNullOrEmpty(dto.TimeOutLon) || dto.AttendanceOutImage == null || string.IsNullOrEmpty(dto.TimeOutLocationName))
-                    return BadRequest(new { statusCode = 400, message = "Missing required fields for time out." });
+                    if (string.IsNullOrEmpty(dto.TimeOutLat) || string.IsNullOrEmpty(dto.TimeOutLon) ||
+                        dto.AttendanceOutImage == null || string.IsNullOrEmpty(dto.TimeOutLocationName))
+                        return BadRequest(new { statusCode = 400, message = "Missing required fields for time out." });
 
-                check.AttendanceOutLat = dto.TimeOutLat;
-                check.AttendanceOutLon = dto.TimeOutLon;
-                check.TimeOutAt = dto.TimeOutAt ?? null;
-                check.TimeOutMobile = dto.TimeOutMobile ?? null;
-                check.TimeOutImage = dto.TimeOutImage ?? null;
-                check.TimeOutLocationName = dto.TimeOutLocationName;
-                check.TimeOutBy = "Attendance Manager";
-                check.AttendanceStatusId = 2;
-                check.TimeOutType = dto.TimeOutType;
-                check.AttendanceOutImagePath = dto.AttendanceOutImage != null ? await UploadDoc.UploadEmployeeAttendaceImage(dto.AttendanceOutImage, employeeCode) : "no image provided";
+                    if (dto.TimeOutAt == null && dto.TimeOutMobile == null && dto.TimeOutImage == null)
+                        return BadRequest(new { statusCode = 400, message = "At least one time-out timestamp source is required." });
 
-                await db.SaveChangesAsync();
-                await db.Database.CommitTransactionAsync();
-                return Json(new { statusCode = 200, message = "Time out marked successfully." });
+                    openSession.AttendanceOutLat = dto.TimeOutLat;
+                    openSession.AttendanceOutLon = dto.TimeOutLon;
+                    openSession.TimeOutAt = dto.TimeOutAt;
+                    openSession.TimeOutMobile = dto.TimeOutMobile;
+                    openSession.TimeOutImage = dto.TimeOutImage;
+                    openSession.TimeOutLocationName = dto.TimeOutLocationName;
+                    openSession.TimeOutBy = "Attendance Manager";
+                    openSession.AttendanceStatusId = 2;
+                    openSession.TimeOutType = dto.TimeOutType;
+                    openSession.AttendanceOutImagePath = dto.AttendanceOutImage != null
+                        ? await UploadDoc.UploadEmployeeAttendaceImage(dto.AttendanceOutImage, employeeCode)
+                        : "no image provided";
+
+                    await db.SaveChangesAsync();
+                    await db.Database.CommitTransactionAsync();
+                    return Json(new { statusCode = 200, message = "Time out marked successfully." });
+                }
             }
             catch (Exception ex)
             {
