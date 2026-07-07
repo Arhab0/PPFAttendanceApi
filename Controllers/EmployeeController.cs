@@ -320,7 +320,7 @@ namespace PPFAttendanceApi.Controllers
                             })
                             .FirstOrDefaultAsync();
 
-                IQueryable<AttendanceLog> query = db.AttendanceLogs.AsNoTracking()
+                IQueryable<AttendanceLog> query = db.AttendanceLogs.AsNoTracking().Include(x=>x.Employee).ThenInclude(x=>x.ShiftType)
                     .Where(x => x.EmployeeId == employeeId
                         && (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage) >= startDate
                         && (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage) < endDate

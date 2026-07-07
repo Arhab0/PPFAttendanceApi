@@ -79,7 +79,7 @@ namespace PPFAttendanceApi.Controllers
                     .CountAsync();
 
 
-                IQueryable<AttendanceLog> attendance = db.AttendanceLogs.AsNoTracking()
+                IQueryable<AttendanceLog> attendance = db.AttendanceLogs.AsNoTracking().Include(x => x.Employee).ThenInclude(x => x.ShiftType)
                     .Where(a => a.EmployeeId != null && a.Employee.IsActive == true
                         && (branchId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
                         && (departmentId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.DepartmentId == departmentId))

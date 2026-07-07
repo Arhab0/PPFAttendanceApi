@@ -15,19 +15,21 @@ namespace PPFAttendanceApi.Controllers
         private readonly ppfdbContext db = _context;
         private readonly ClaimsService claims = _claims;
 
-        [HttpGet("GetAttendanceHistory")]
-        public async Task<IActionResult> GetAttendanceHistory(int month)
+        public async Task<IActionResult> GetAttendanceHistory(string from, string to)
         {
             try
             {
                 var sid = int.Parse(claims["sid"]);
                 var roleId = int.Parse(claims["RoleId"]);
 
+                var startDate = DateTime.SpecifyKind(DateTime.Parse(from).Date, DateTimeKind.Unspecified);
+                var endDate = DateTime.SpecifyKind(DateTime.Parse(to).Date.AddDays(1), DateTimeKind.Unspecified);
+
                 IQueryable<AttendanceLog> query = db.AttendanceLogs
                     .Where(x =>
-                        (x.TimeInAt.HasValue && x.TimeInAt.Value.Month == month) ||
-                        (x.TimeInMobile.HasValue && x.TimeInMobile.Value.Month == month) ||
-                        (x.TimeInImage.HasValue && x.TimeInImage.Value.Month == month));
+                        (x.TimeInAt.HasValue && x.TimeInAt.Value >= startDate && x.TimeInAt.Value < endDate) ||
+                        (x.TimeInMobile.HasValue && x.TimeInMobile.Value >= startDate && x.TimeInMobile.Value < endDate) ||
+                        (x.TimeInImage.HasValue && x.TimeInImage.Value >= startDate && x.TimeInImage.Value < endDate));
 
                 query = roleId == 3
                     ? query.Where(x => x.EmployeeId == sid)
