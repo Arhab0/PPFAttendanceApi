@@ -15,6 +15,7 @@ namespace PPFAttendanceApi.Controllers
         private readonly ppfdbContext db = _context;
         private readonly ClaimsService claims = _claims;
 
+        [HttpGet("GetAttendanceHistory")]
         public async Task<IActionResult> GetAttendanceHistory(string from, string to)
         {
             try
