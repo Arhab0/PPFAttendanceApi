@@ -15,7 +15,7 @@ namespace PPFAttendanceApi.Controllers
         private readonly ppfdbContext db = _context;
         private readonly ClaimsService claims = _claims;
 
-        [AllowAnonymous]
+        // Attendance Reports Required
         [HttpGet("DetailedAttendanceReport")]
         public async Task<IActionResult> DetailedAttendanceReport(int employeeId, DateTime From, DateTime To)
         {
@@ -88,6 +88,123 @@ namespace PPFAttendanceApi.Controllers
                     }
 
                     report.Add(dto);
+                }
+
+                return Json(report);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        // Employee Attendance Summary
+        [AllowAnonymous]
+        [HttpGet("EmployeeAttendanceSummary")]
+        public async Task<IActionResult> EmployeeAttendanceSummary(int branchId, int departmentId, DateTime From, DateTime To)
+        {
+            try
+            {
+                var fromDate = From.Date;
+                var toDate = To.Date;
+                var toDateExclusive = toDate.AddDays(1);
+                var totalDays = (toDate - fromDate).Days + 1;
+
+                if (totalDays <= 0)
+                    return BadRequest("'To' date must be on or after 'From' date.");
+
+                var empIds = await db.EmpUserBrDeptMappings
+                    .Where(x => x.BranchId == branchId && x.DepartmentId == departmentId)
+                    .Select(x => x.EmployeeId)
+                    .Distinct()
+                    .ToListAsync();
+
+                if (empIds.Count == 0)
+                    return Json(new List<EmployeeAttendanceSummaryDto>());
+
+                var employees = await db.Employees.AsNoTracking()
+                    .Include(x => x.ShiftType)
+                    .Where(x => empIds.Contains(x.EmployeeId))
+                    .ToListAsync();
+
+                var logs = await db.AttendanceLogs.AsNoTracking()
+                    .Where(x => empIds.Contains(x.EmployeeId) &&
+                        ((x.TimeInAt != null && x.TimeInAt >= fromDate && x.TimeInAt < toDateExclusive) ||
+                         (x.TimeInMobile != null && x.TimeInMobile >= fromDate && x.TimeInMobile < toDateExclusive) ||
+                         (x.TimeInImage != null && x.TimeInImage >= fromDate && x.TimeInImage < toDateExclusive)))
+                    .ToListAsync();
+
+                var logsByEmployee = logs
+                    .GroupBy(x => x.EmployeeId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.OrderBy(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
+                              .GroupBy(x => (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date)
+                              .ToDictionary(dg => dg.Key, dg => dg.First())
+                    );
+
+                var report = new List<EmployeeAttendanceSummaryDto>();
+
+                foreach (var employee in employees)
+                {
+                    var shiftHours = employee.ShiftType.ShiftHours;
+
+                    double totalWorkedHours = 0;
+                    double totalShortHours = 0;
+                    double totalExcessHours = 0;
+                    int totalPresentDays = 0;
+                    int totalAbsentDays = 0;
+
+                    logsByEmployee.TryGetValue(employee.EmployeeId, out var employeeLogsByDate);
+
+                    for (var day = fromDate; day <= toDate; day = day.AddDays(1))
+                    {
+                        AttendanceLog log = null;
+                        employeeLogsByDate?.TryGetValue(day, out log);
+
+                        if (log == null)
+                        {
+                            totalAbsentDays++;
+                            continue;
+                        }
+
+                        var timeIn = log.TimeInAt ?? log.TimeInMobile ?? log.TimeInImage;
+                        var timeOut = log.TimeOutAt ?? log.TimeOutMobile ?? log.TimeOutImage;
+
+                        if (!timeIn.HasValue)
+                        {
+                            totalAbsentDays++;
+                            continue;
+                        }
+
+                        totalPresentDays++;
+
+                        if (timeOut.HasValue)
+                        {
+                            var workedHours = (timeOut.Value - timeIn.Value).TotalHours;
+                            totalWorkedHours += workedHours;
+
+                            var diff = workedHours - shiftHours;
+                            if (diff < 0)
+                                totalShortHours += Math.Abs(diff);
+                            else
+                                totalExcessHours += diff;
+                        }
+                    }
+
+                    var totalScheduledHours = (double)shiftHours * totalDays;
+
+                    report.Add(new EmployeeAttendanceSummaryDto
+                    {
+                        EmployeeName = employee.EmployeeName,
+                        EmployeeCode = employee.EmployeeCode,
+                        TotalScheduledHours = Math.Round(totalScheduledHours, 2),
+                        TotalWorkedHours = Math.Round(totalWorkedHours, 2),
+                        TotalShortHours = Math.Round(totalShortHours, 2),
+                        TotalExcessHours = Math.Round(totalExcessHours, 2),
+                        TotalPresentDays = totalPresentDays,
+                        TotalAbsentDays = totalAbsentDays
+                    });
                 }
 
                 return Json(report);
