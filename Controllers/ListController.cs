@@ -84,5 +84,23 @@ namespace PPFAttendanceApi.Controllers
                 return BadRequest(e.Message);
             }
         }
+
+        [HttpGet("GetDepartmentByBranchIdForReports")]
+        public async Task<IActionResult> GetDepartmentByBranchIdForReports(int branchId)
+        {
+            try
+            {
+                var departments = await db.Departments
+                    .Where(d => d.IsActive == true && d.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
+                    .Select(d => new { d.DepartmentId, d.DepartmentName })
+                    .Distinct()
+                    .ToListAsync();
+                return Json(departments);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
     }
 }
