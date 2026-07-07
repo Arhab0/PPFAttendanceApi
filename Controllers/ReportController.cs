@@ -191,13 +191,13 @@ namespace PPFAttendanceApi.Controllers
                         }
                     }
 
-                    var totalScheduledHours = (double)shiftHours * totalDays;
+                    var totalScheduledHours = shiftHours * totalDays;
 
                     report.Add(new EmployeeAttendanceSummaryDto
                     {
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
-                        TotalScheduledHours = Math.Round(totalScheduledHours, 2),
+                        TotalScheduledHours = totalScheduledHours,
                         TotalWorkedHours = Math.Round(totalWorkedHours, 2),
                         TotalShortHours = Math.Round(totalShortHours, 2),
                         TotalExcessHours = Math.Round(totalExcessHours, 2),
