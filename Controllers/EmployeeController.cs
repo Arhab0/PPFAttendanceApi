@@ -43,18 +43,18 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest(new { statusCode = 400, message = "Required entries are missing." });
                 }
 
-                var employeeCodeCheck = await db.Employees.AnyAsync(e => e.EmployeeCode == "EMP-" + dto.EmployeeCodeNo.ToString());
+                //var employeeCodeCheck = await db.Employees.AnyAsync(e => e.EmployeeCode == "EMP-" + dto.EmployeeCodeNo.ToString());
 
-                if (employeeCodeCheck)
-                {
-                    return BadRequest(new { message = "Employee with this EmployeeCode already exists." });
-                }
+                //if (employeeCodeCheck)
+                //{
+                //    return BadRequest(new { message = "Employee with this EmployeeCode already exists." });
+                //}
 
                 var employee = new Employee
                 {
                     EmployeeName = dto.Name,
                     EmployeeFatherName = dto.FatherName,
-                    EmployeeCode = "EMP-" + dto.EmployeeCodeNo.ToString(),
+                    //EmployeeCode = "EMP-" + dto.EmployeeCodeNo.ToString(),
                     Cnic = dto.Cnic,
                     JobTitle = dto.JobTitle,
                     MobileNumber = dto.MobileNumber,
@@ -68,6 +68,10 @@ namespace PPFAttendanceApi.Controllers
                 };
                 db.Employees.Add(employee);
                 await db.SaveChangesAsync();
+
+                var next = 1;
+                var count = await db.Employees.CountAsync();
+                employee.EmployeeCode = "EMP-" + (count + next).ToString("D4");
 
                 if (!string.IsNullOrEmpty(dto.Password) && !string.IsNullOrEmpty(dto.Email))
                 {
