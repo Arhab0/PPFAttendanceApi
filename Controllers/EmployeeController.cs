@@ -33,6 +33,18 @@ namespace PPFAttendanceApi.Controllers
                     }
                 }
 
+                var cnicCheck = await db.Employees.AnyAsync(e => e.Cnic == dto.Cnic);
+                var phoneNoCheck = await db.Employees.AnyAsync(e => e.MobileNumber == dto.MobileNumber);
+                if (cnicCheck)
+                {
+                    return BadRequest(new { statusCode = 400, message = "Employee with this CNIC already exists." });
+                }
+
+                if (phoneNoCheck)
+                {
+                    return BadRequest(new { statusCode = 400, message = "Employee with this PhoneNo already exists." });
+                }
+
                 if (dto.BrDeptMapping.Count(x => x.IsPrimaryBranch) > 1)
                 {
                     return BadRequest(new { statusCode = 400, message = "Primary branch can only be one." });
