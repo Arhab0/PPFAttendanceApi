@@ -414,6 +414,9 @@ namespace PPFAttendanceApi.Controllers
 
                     return new
                     {
+                        EmployeeId = employeeId,
+                        EmployeeName = data.EmployeeName,
+                        EmployeeCode = data.EmployeeCode,
                         AttendanceDate = date_in?.Date,
                         CheckInAt = date_in?.ToShortTimeString(),
                         CheckInLocation = log.TimeInLocationName,
