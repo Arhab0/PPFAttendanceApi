@@ -47,7 +47,6 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest(new { message = "Employee with this EmployeeCode already exists." });
                 }
 
-                var password = Security.Encrypt(dto.Password);
                 var employee = new Employee
                 {
                     EmployeeName = dto.Name,
@@ -57,8 +56,6 @@ namespace PPFAttendanceApi.Controllers
                     JobTitle = dto.JobTitle,
                     MobileNumber = dto.MobileNumber,
                     EmergencyContact = dto.EmergencyContact,
-                    EmployeeEmail = dto.Email,
-                    EmployeePassword = password,
                     RoleId = dto.RoleId,
                     IsActive = true,
                     PaymentTypeId = dto.PaymentTypeId,
@@ -68,6 +65,13 @@ namespace PPFAttendanceApi.Controllers
                 };
                 db.Employees.Add(employee);
                 await db.SaveChangesAsync();
+
+                if (!string.IsNullOrEmpty(dto.Password) && !string.IsNullOrEmpty(dto.Email))
+                {
+                    var password = Security.Encrypt(dto.Password);
+                    employee.EmployeePassword = password;
+                    employee.EmployeeEmail = dto.Email;
+                }
 
                 List<Location> locations = new();
                 List<EmpUserBrDeptMapping> employeeBrDeptMappings = new();
@@ -168,17 +172,17 @@ namespace PPFAttendanceApi.Controllers
                 employee.JobTitle = dto.JobTitle;
                 employee.MobileNumber = dto.MobileNumber;
                 employee.EmergencyContact = dto.EmergencyContact;
-                employee.EmployeeEmail = dto.Email;
                 employee.RoleId = dto.RoleId;
                 employee.PaymentTypeId = dto.PaymentTypeId;
                 employee.ShiftTypeId = dto.ShiftTypeId;
                 employee.EmployeeTypeId = dto.EmployeeTypeId;
                 employee.UpdatedAt = DateTime.Now;
 
-                if (!string.IsNullOrEmpty(dto.Password))
+                if (!string.IsNullOrEmpty(dto.Password) && !string.IsNullOrEmpty(dto.Email))
                 {
                     var password = Security.Encrypt(dto.Password);
                     employee.EmployeePassword = password;
+                    employee.EmployeeEmail = dto.Email;
                 }
 
                 await db.EmpUserBrDeptMappings.Where(x => x.EmployeeId == dto.sid).ExecuteDeleteAsync();

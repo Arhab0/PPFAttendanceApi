@@ -359,7 +359,6 @@ public partial class ppfdbContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("employee_code");
             entity.Property(e => e.EmployeeEmail)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("employee_email");
             entity.Property(e => e.EmployeeFatherName)
@@ -370,7 +369,6 @@ public partial class ppfdbContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("employee_name");
             entity.Property(e => e.EmployeePassword)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("employee_password");
             entity.Property(e => e.EmployeeTypeId).HasColumnName("employee_type_id");
