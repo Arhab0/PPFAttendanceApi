@@ -16,6 +16,7 @@ namespace PPFAttendanceApi.Controllers
         private readonly ClaimsService claims = _claims;
 
         // Attendance Reports Required
+        [AllowAnonymous]
         [HttpGet("DetailedAttendanceReport")]
         public async Task<IActionResult> DetailedAttendanceReport(int employeeId, DateTime From, DateTime To)
         {
@@ -37,7 +38,7 @@ namespace PPFAttendanceApi.Controllers
                 var toDateExclusive = toDate.AddDays(1);
 
                 var logs = await db.AttendanceLogs.AsNoTracking()
-                    .Where(x => x.EmployeeId == employeeId &&
+                    .Where(x => x.EmployeeId == employeeId && x.Employee.IsActive == true &&
                     (x.AttendanceDate != null && x.AttendanceDate >= fromDate && x.AttendanceDate < toDateExclusive))
                     .ToListAsync();
 
@@ -115,7 +116,7 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest("'To' date must be on or after 'From' date.");
 
                 var empIds = await db.EmpUserBrDeptMappings
-                    .Where(x => x.BranchId == branchId && x.DepartmentId == departmentId)
+                    .Where(x => x.BranchId == branchId && x.DepartmentId == departmentId && x.Employee.IsActive == true)
                     .Select(x => x.EmployeeId)
                     .Distinct()
                     .ToListAsync();
