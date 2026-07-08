@@ -32,20 +32,18 @@ namespace PPFAttendanceApi.Controllers
                 if (employee.ShiftType == null)
                     return BadRequest("Employee has no shift type configured.");
 
-                var fromDate = From.Date;
-                var toDate = To.Date;
+                DateOnly fromDate = DateOnly.FromDateTime(From);
+                var toDate = DateOnly.FromDateTime(To);
                 var toDateExclusive = toDate.AddDays(1);
 
                 var logs = await db.AttendanceLogs.AsNoTracking()
                     .Where(x => x.EmployeeId == employeeId &&
-                        ((x.TimeInAt != null && x.TimeInAt >= fromDate && x.TimeInAt < toDateExclusive) ||
-                         (x.TimeInMobile != null && x.TimeInMobile >= fromDate && x.TimeInMobile < toDateExclusive) ||
-                         (x.TimeInImage != null && x.TimeInImage >= fromDate && x.TimeInImage < toDateExclusive)))
+                    (x.AttendanceDate != null && x.AttendanceDate >= fromDate && x.AttendanceDate < toDateExclusive))
                     .ToListAsync();
 
                 var byDate = logs
-                    .OrderBy(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
-                    .GroupBy(x => (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date)
+                    .OrderBy(x => x.AttendanceDate)
+                    .GroupBy(x => x.AttendanceDate)
                     .ToDictionary(g => g.Key, g => g.First());
 
                 var report = new List<DetailedAttendanceReportDto>();
@@ -63,7 +61,7 @@ namespace PPFAttendanceApi.Controllers
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
                         ScheduledWorkingHours = employee.ShiftType.ShiftHours,
-                        AttendanceDate = DateOnly.FromDateTime(i)
+                        AttendanceDate = i
                     };
 
                     if (log == null)
@@ -108,10 +106,10 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var fromDate = From.Date;
-                var toDate = To.Date;
+                DateOnly fromDate = DateOnly.FromDateTime(From);
+                DateOnly toDate = DateOnly.FromDateTime(To);
                 var toDateExclusive = toDate.AddDays(1);
-                var totalDays = (toDate - fromDate).Days + 1;
+                var totalDays = (To.Date - From.Date).Days + 1;
 
                 if (totalDays <= 0)
                     return BadRequest("'To' date must be on or after 'From' date.");
@@ -131,18 +129,16 @@ namespace PPFAttendanceApi.Controllers
                     .ToListAsync();
 
                 var logs = await db.AttendanceLogs.AsNoTracking()
-                    .Where(x => empIds.Contains(x.EmployeeId) &&
-                        ((x.TimeInAt != null && x.TimeInAt >= fromDate && x.TimeInAt < toDateExclusive) ||
-                         (x.TimeInMobile != null && x.TimeInMobile >= fromDate && x.TimeInMobile < toDateExclusive) ||
-                         (x.TimeInImage != null && x.TimeInImage >= fromDate && x.TimeInImage < toDateExclusive)))
-                    .ToListAsync();
+                .Where(x => empIds.Contains(x.EmployeeId) &&
+                (x.AttendanceDate != null && x.AttendanceDate >= fromDate && x.AttendanceDate < toDateExclusive))
+                .ToListAsync();
 
                 var logsByEmployee = logs
                     .GroupBy(x => x.EmployeeId)
                     .ToDictionary(
                         g => g.Key,
-                        g => g.OrderBy(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
-                              .GroupBy(x => (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date)
+                        g => g.OrderBy(x => x.AttendanceDate)
+                              .GroupBy(x => x.AttendanceDate)
                               .ToDictionary(dg => dg.Key, dg => dg.First())
                     );
 
@@ -201,7 +197,7 @@ namespace PPFAttendanceApi.Controllers
                         }
                     }
 
-                    var totalScheduledHours = shiftHours * (totalDays-minusDays);
+                    var totalScheduledHours = shiftHours * (totalDays - minusDays);
 
                     report.Add(new EmployeeAttendanceSummaryDto
                     {

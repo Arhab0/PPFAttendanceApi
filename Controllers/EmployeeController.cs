@@ -229,16 +229,13 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpGet("GetAllEmployees")]
-        public async Task<IActionResult> GetAllEmployees(string? EmployeeName, int BranchId = 0, int DepartmentId = 0, int Page = 1, int PageSize = 20)
+        public async Task<IActionResult> GetAllEmployees(int BranchId, int DepartmentId)
         {
             try
             {
+                var empIds = await db.EmpUserBrDeptMappings.Where(x => x.BranchId == BranchId && x.DepartmentId == DepartmentId).Select(x => x.EmployeeId).Distinct().ToListAsync();
                 var data = await db.Employees.AsNoTracking()
-                            .Where(e =>
-                                (string.IsNullOrEmpty(EmployeeName) || e.EmployeeName.ToLower().Contains(EmployeeName.ToLower())) &&
-                                (BranchId == 0 || e.EmpUserBrDeptMappings.Any(x => x.BranchId == BranchId)) &&
-                                (DepartmentId == 0 || e.EmpUserBrDeptMappings.Any(x => x.DepartmentId == DepartmentId))
-                             )
+                            .Where(e => empIds.Contains(e.EmployeeId))
                             .Include(x => x.EmpUserBrDeptMappings)
                                 .ThenInclude(x => x.Branch)
                             .Include(x => x.EmployeeType)
@@ -262,15 +259,13 @@ namespace PPFAttendanceApi.Controllers
                                 ShiftType = x.ShiftType.Type,
                                 x.PaymentTypeId,
                                 PaymentType = x.PaymentType.Type,
-                                MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x=>x.Branch.BranchName).FirstOrDefault(),
+                                MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
                                 DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
                                 OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
                                 mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName, x.IsPrimaryBranch }).ToList(),
                                 IsFaceRegistered = x.EmployeeFiles.Any()
                             })
                             .OrderBy(x => x.EmployeeId)
-                            .Skip((Page - 1) * PageSize)
-                            .Take(PageSize)
                             .ToListAsync();
 
                 return Json(data);
@@ -320,7 +315,7 @@ namespace PPFAttendanceApi.Controllers
                             })
                             .FirstOrDefaultAsync();
 
-                IQueryable<AttendanceLog> query = db.AttendanceLogs.AsNoTracking().Include(x=>x.Employee).ThenInclude(x=>x.ShiftType)
+                IQueryable<AttendanceLog> query = db.AttendanceLogs.AsNoTracking().Include(x => x.Employee).ThenInclude(x => x.ShiftType)
                     .Where(x => x.EmployeeId == employeeId
                         && (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage) >= startDate
                         && (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage) < endDate
