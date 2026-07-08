@@ -25,9 +25,12 @@ namespace PPFAttendanceApi.Controllers
                 var userClaimId = int.Parse(claims["sid"]);
                 var roleId = int.Parse(claims["RoleId"]);
 
-                if (await db.Employees.AnyAsync(e => e.EmployeeEmail.Trim() == dto.Email.Trim()))
+                if (!string.IsNullOrEmpty(dto.Email))
                 {
-                    return BadRequest(new { statusCode = 400, message = "Employee with this Email already exists." });
+                    if (await db.Employees.AnyAsync(e => e.EmployeeEmail.Trim() == dto.Email.Trim()))
+                    {
+                        return BadRequest(new { statusCode = 400, message = "Employee with this Email already exists." });
+                    }
                 }
 
                 if (dto.BrDeptMapping.Count(x => x.IsPrimaryBranch) > 1)
