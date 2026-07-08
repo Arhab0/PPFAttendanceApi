@@ -228,12 +228,60 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
+        [HttpGet("GetAllEmployeesList")]
+        public async Task<IActionResult> GetAllEmployeesList()
+        {
+            try
+            {
+                var empIds = await db.EmpUserBrDeptMappings.Where(x => x.Employee.IsActive == true).Select(x => x.EmployeeId).Distinct().ToListAsync();
+                var data = await db.Employees.AsNoTracking()
+                            .Where(e => empIds.Contains(e.EmployeeId))
+                            .Include(x => x.EmpUserBrDeptMappings)
+                                .ThenInclude(x => x.Branch)
+                            .Include(x => x.EmployeeType)
+                            .Include(x => x.ShiftType)
+                            .Include(x => x.PaymentType)
+                            .Include(x => x.EmployeeFiles)
+                            .Select(x => new
+                            {
+                                x.EmployeeId,
+                                x.EmployeeName,
+                                x.EmployeeFatherName,
+                                x.Cnic,
+                                x.MobileNumber,
+                                x.JobTitle,
+                                x.EmployeeEmail,
+                                x.EmployeeCode,
+                                x.IsActive,
+                                x.EmployeeTypeId,
+                                EmployeeType = x.EmployeeType.Type,
+                                x.ShiftTypeId,
+                                ShiftType = x.ShiftType.Type,
+                                x.PaymentTypeId,
+                                PaymentType = x.PaymentType.Type,
+                                MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
+                                DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
+                                OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
+                                mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName, x.IsPrimaryBranch }).ToList(),
+                                IsFaceRegistered = x.EmployeeFiles.Any()
+                            })
+                            .OrderBy(x => x.EmployeeId)
+                            .ToListAsync();
+
+                return Json(data);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
         [HttpGet("GetAllEmployees")]
         public async Task<IActionResult> GetAllEmployees(int BranchId, int DepartmentId)
         {
             try
             {
-                var empIds = await db.EmpUserBrDeptMappings.Where(x => x.BranchId == BranchId && x.DepartmentId == DepartmentId).Select(x => x.EmployeeId).Distinct().ToListAsync();
+                var empIds = await db.EmpUserBrDeptMappings.Where(x => x.BranchId == BranchId && x.DepartmentId == DepartmentId && x.Employee.IsActive == true).Select(x => x.EmployeeId).Distinct().ToListAsync();
                 var data = await db.Employees.AsNoTracking()
                             .Where(e => empIds.Contains(e.EmployeeId))
                             .Include(x => x.EmpUserBrDeptMappings)
