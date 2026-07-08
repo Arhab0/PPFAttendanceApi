@@ -160,6 +160,7 @@ namespace PPFAttendanceApi.Controllers
 
                     logsByEmployee.TryGetValue(employee.EmployeeId, out var employeeLogsByDate);
 
+                    var minusDays = 0;
                     for (var day = fromDate; day <= toDate; day = day.AddDays(1))
                     {
                         AttendanceLog log = null;
@@ -169,7 +170,7 @@ namespace PPFAttendanceApi.Controllers
                         {
                             if (day.DayOfWeek == DayOfWeek.Sunday)
                             {
-                                totalDays--;
+                                minusDays++;
                                 continue;
                             }
                             totalAbsentDays++;
@@ -200,7 +201,7 @@ namespace PPFAttendanceApi.Controllers
                         }
                     }
 
-                    var totalScheduledHours = shiftHours * totalDays;
+                    var totalScheduledHours = shiftHours * (totalDays-minusDays);
 
                     report.Add(new EmployeeAttendanceSummaryDto
                     {
