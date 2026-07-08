@@ -166,13 +166,7 @@ namespace PPFAttendanceApi.Controllers
             await db.Database.BeginTransactionAsync();
             try
             {
-                var check = await db.Employees.Where(x => x.EmployeeId != dto.sid && x.EmployeeEmail == dto.Email).FirstOrDefaultAsync();
-
-                if (check != null)
-                {
-                    return BadRequest(new { statusCode = 400, message = "Employee with this Email already exists." });
-                }
-
+                
                 if (dto.BrDeptMapping.Count(x => x.IsPrimaryBranch) > 1)
                 {
                     return BadRequest(new { statusCode = 400, message = "Primary branch can only be one." });
@@ -199,6 +193,12 @@ namespace PPFAttendanceApi.Controllers
 
                 if (!string.IsNullOrEmpty(dto.Password) && !string.IsNullOrEmpty(dto.Email))
                 {
+                    var check = await db.Employees.Where(x => x.EmployeeId != dto.sid && x.EmployeeEmail == dto.Email).FirstOrDefaultAsync();
+
+                    if (check != null)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "Employee with this Email already exists." });
+                    }
                     var password = Security.Encrypt(dto.Password);
                     employee.EmployeePassword = password;
                     employee.EmployeeEmail = dto.Email;
