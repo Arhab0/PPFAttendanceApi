@@ -101,15 +101,14 @@ public partial class ppfdbContext : DbContext
             entity.HasIndex(e => e.UserId, "idx_attendance_log_user_id");
 
             entity.Property(e => e.AttendanceLogId).HasColumnName("attendance_log_id");
+            entity.Property(e => e.AttendanceDate).HasColumnName("attendance_date");
             entity.Property(e => e.AttendanceInImagePath)
                 .HasColumnType("character varying")
                 .HasColumnName("attendance_in_image_path");
             entity.Property(e => e.AttendanceInLat)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("attendance_in_lat");
             entity.Property(e => e.AttendanceInLon)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("attendance_in_lon");
             entity.Property(e => e.AttendanceOutImagePath)
@@ -127,21 +126,18 @@ public partial class ppfdbContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("time_in_at");
             entity.Property(e => e.TimeInBy)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("time_in_by");
             entity.Property(e => e.TimeInImage)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("time_in_image");
             entity.Property(e => e.TimeInLocationName)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("time_in_location_name");
             entity.Property(e => e.TimeInMobile)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("time_in_mobile");
             entity.Property(e => e.TimeInType)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("time_in_type");
             entity.Property(e => e.TimeOutAt)

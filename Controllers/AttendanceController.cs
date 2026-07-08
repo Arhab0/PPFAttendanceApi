@@ -194,8 +194,13 @@ namespace PPFAttendanceApi.Controllers
                     if (dto.TimeInAt == null && dto.TimeInMobile == null && dto.TimeInImage == null)
                         return BadRequest(new { statusCode = 400, message = "At least one time-in timestamp source is required." });
 
+                    var attendance_date = dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage;
+                    DateOnly formattedDate = attendance_date.HasValue
+                                        ? DateOnly.FromDateTime(attendance_date.Value)
+                                        : new DateOnly();
                     var log = new AttendanceLog
                     {
+                        AttendanceDate = formattedDate,
                         AttendanceInLat = dto.TimeInLat,
                         AttendanceInLon = dto.TimeInLon,
                         TimeInAt = dto.TimeInAt,
@@ -328,8 +333,13 @@ namespace PPFAttendanceApi.Controllers
                     if (dto.TimeInAt == null && dto.TimeInMobile == null && dto.TimeInImage == null)
                         return BadRequest(new { statusCode = 400, message = "At least one time-in timestamp source is required." });
 
+                    var attendance_date = dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage;
+                    DateOnly formattedDate = attendance_date.HasValue
+                                        ? DateOnly.FromDateTime(attendance_date.Value)
+                                        : new DateOnly();
                     var log = new AttendanceLog
                     {
+                        AttendanceDate = formattedDate,
                         AttendanceInLat = dto.TimeInLat,
                         AttendanceInLon = dto.TimeInLon,
                         TimeInAt = dto.TimeInAt,

@@ -54,6 +54,10 @@ namespace PPFAttendanceApi.Controllers
                 {
                     byDate.TryGetValue(i, out var log);
 
+                    if (log == null && i.DayOfWeek == DayOfWeek.Sunday)
+                    {
+                        continue;
+                    }
                     var dto = new DetailedAttendanceReportDto
                     {
                         EmployeeName = employee.EmployeeName,
@@ -83,7 +87,7 @@ namespace PPFAttendanceApi.Controllers
                             ? $"{(int)worked.Value.TotalHours}h {worked.Value.Minutes}m"
                             : "Incomplete";
                         dto.Difference = worked.HasValue
-                            ? Math.Round(worked.Value.TotalHours - employee.ShiftType.ShiftHours,2)
+                            ? Math.Round(worked.Value.TotalHours - employee.ShiftType.ShiftHours, 2)
                             : 0;
                     }
 
@@ -163,6 +167,11 @@ namespace PPFAttendanceApi.Controllers
 
                         if (log == null)
                         {
+                            if (day.DayOfWeek == DayOfWeek.Sunday)
+                            {
+                                totalDays--;
+                                continue;
+                            }
                             totalAbsentDays++;
                             continue;
                         }

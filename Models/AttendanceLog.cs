@@ -51,6 +51,8 @@ public partial class AttendanceLog
 
     public string AttendanceOutImagePath { get; set; }
 
+    public DateOnly AttendanceDate { get; set; }
+
     public virtual AttendanceStatus AttendanceStatus { get; set; }
 
     public virtual Employee Employee { get; set; }
