@@ -61,6 +61,7 @@ namespace PPFAttendanceApi.Controllers
                     {
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
+                        PhoneNumber = employee.MobileNumber,
                         ScheduledWorkingHours = employee.ShiftType.ShiftHours,
                         AttendanceDate = i
                     };
@@ -204,6 +205,7 @@ namespace PPFAttendanceApi.Controllers
                     {
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
+                        PhoneNumber = employee.MobileNumber,
                         TotalScheduledHours = totalScheduledHours,
                         TotalWorkedHours = Math.Round(totalWorkedHours, 2),
                         TotalShortHours = Math.Round(totalShortHours, 2),
