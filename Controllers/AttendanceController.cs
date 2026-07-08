@@ -169,9 +169,6 @@ namespace PPFAttendanceApi.Controllers
                     employeeCode = employee.EmployeeCode;
                 }
 
-                // Date-agnostic lookup: find the most recent OPEN session for this person,
-                // regardless of which calendar date it started on. Fixes overnight shifts
-                // (e.g. 8pm-4am) and missed/late checkouts.
                 var openSession = await db.AttendanceLogs
                     .Where(x =>
                         (empFlag ? x.EmployeeId == sid : x.UserId == sid) &&
@@ -186,9 +183,7 @@ namespace PPFAttendanceApi.Controllers
                         return BadRequest(new
                         {
                             statusCode = 400,
-                            message = $"You already have an open session since " +
-                                $"{(openSession.TimeInAt ?? openSession.TimeInMobile ?? openSession.TimeInImage):yyyy-MM-dd HH:mm}. " +
-                                $"Please check out first."
+                            message = $"Already TimeIn for {(openSession.TimeInAt ?? openSession.TimeInMobile ?? openSession.TimeInImage):yyyy-MM-dd}."
                         });
                     }
 
@@ -322,9 +317,7 @@ namespace PPFAttendanceApi.Controllers
                         return BadRequest(new
                         {
                             statusCode = 400,
-                            message = $"You already have an open session since " +
-                                $"{(openSession.TimeInAt ?? openSession.TimeInMobile ?? openSession.TimeInImage):yyyy-MM-dd HH:mm}. " +
-                                $"Please check out first."
+                            message = $"Already TimeIn for {(openSession.TimeInAt ?? openSession.TimeInMobile ?? openSession.TimeInImage):yyyy-MM-dd}."
                         });
                     }
 
