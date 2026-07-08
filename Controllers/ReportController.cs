@@ -33,16 +33,9 @@ namespace PPFAttendanceApi.Controllers
                 if (employee.ShiftType == null)
                     return BadRequest("Employee has no shift type configured.");
 
-                if (From.Date < employee.CreatedAt.Date)
-                {
-                    return BadRequest(new
-                    {
-                        statusCode = 400,
-                        message = $"Employee was created on {employee.CreatedAt:dd-MM-yyyy}. 'From' date cannot be earlier than that."
-                    });
-                }
-
-                DateOnly fromDate = DateOnly.FromDateTime(From);
+                var fromDate = employee.CreatedAt.Date > From.Date
+                            ? DateOnly.FromDateTime(employee.CreatedAt.Date)
+                            : DateOnly.FromDateTime(From);
                 var toDate = DateOnly.FromDateTime(To);
                 var toDateExclusive = toDate.AddDays(1);
 
