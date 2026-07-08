@@ -62,19 +62,35 @@ namespace PPFAttendanceApi.Controllers
 
                 int totalStaffCount = await employeeQuery.CountAsync();
 
-                var todayLogsQuery = db.AttendanceLogs.AsNoTracking()
-                    .Where(a => a.EmployeeId != null && a.Employee.IsActive == true
-                        && (branchId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
-                        && (departmentId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.DepartmentId == departmentId))
-                        && (
-                            (a.TimeInAt != null && a.TimeInAt >= today && a.TimeInAt < tomorrow) ||
-                            (a.TimeInMobile != null && a.TimeInMobile >= today && a.TimeInMobile < tomorrow) ||
-                            (a.TimeInImage != null && a.TimeInImage >= today && a.TimeInImage < tomorrow)
-                        ));
+                //var todayLogsQuery = db.AttendanceLogs.AsNoTracking()
+                //    .Where(a => a.EmployeeId != null && a.Employee.IsActive == true
+                //        && (branchId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
+                //        && (departmentId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.DepartmentId == departmentId))
+                //        && (
+                //            (a.TimeInAt != null && a.TimeInAt >= today && a.TimeInAt < tomorrow) ||
+                //            (a.TimeInMobile != null && a.TimeInMobile >= today && a.TimeInMobile < tomorrow) ||
+                //            (a.TimeInImage != null && a.TimeInImage >= today && a.TimeInImage < tomorrow)
+                //        ));
 
-                var presentToday = await todayLogsQuery.Select(a => a.EmployeeId).Distinct().CountAsync();
-                var checkedIn = await todayLogsQuery.CountAsync();
-                var checkedOut = await todayLogsQuery
+                //var presentToday = await todayLogsQuery.Select(a => a.EmployeeId).Distinct().CountAsync();
+                //var checkedIn = await todayLogsQuery.CountAsync();
+                //var checkedOut = await todayLogsQuery
+                //    .Where(a => a.TimeOutAt != null || a.TimeOutMobile != null || a.TimeOutImage != null)
+                //    .CountAsync();
+
+                var rangeLogsQuery = db.AttendanceLogs.AsNoTracking()
+                .Where(a => a.EmployeeId != null && a.Employee.IsActive == true
+                    && (branchId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
+                    && (departmentId == 0 || a.Employee.EmpUserBrDeptMappings.Any(m => m.DepartmentId == departmentId))
+                    && (
+                        (a.TimeInAt != null && a.TimeInAt >= rangeStart && a.TimeInAt < rangeEnd) ||
+                        (a.TimeInMobile != null && a.TimeInMobile >= rangeStart && a.TimeInMobile < rangeEnd) ||
+                        (a.TimeInImage != null && a.TimeInImage >= rangeStart && a.TimeInImage < rangeEnd)
+                    ));
+
+                var presentInRange = await rangeLogsQuery.Select(a => a.EmployeeId).Distinct().CountAsync();
+                var checkedIn = await rangeLogsQuery.CountAsync();
+                var checkedOut = await rangeLogsQuery
                     .Where(a => a.TimeOutAt != null || a.TimeOutMobile != null || a.TimeOutImage != null)
                     .CountAsync();
 
@@ -149,7 +165,7 @@ namespace PPFAttendanceApi.Controllers
                     Stats = new
                     {
                         TotalEmployees = totalStaffCount,
-                        PresentToday = presentToday,
+                        PresentToday = presentInRange,
                         CheckedIn = checkedIn,
                         CheckedOut = checkedOut
                     },
