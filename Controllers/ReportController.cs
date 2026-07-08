@@ -38,7 +38,7 @@ namespace PPFAttendanceApi.Controllers
                 var toDateExclusive = toDate.AddDays(1);
 
                 var logs = await db.AttendanceLogs.AsNoTracking()
-                    .Where(x => x.EmployeeId == employeeId && x.Employee.IsActive == true &&
+                    .Where(x => x.EmployeeId == employeeId &&
                     (x.AttendanceDate != null && x.AttendanceDate >= fromDate && x.AttendanceDate < toDateExclusive))
                     .ToListAsync();
 
@@ -62,6 +62,7 @@ namespace PPFAttendanceApi.Controllers
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
                         PhoneNumber = employee.MobileNumber,
+                        IsActive = employee.IsActive ? "Active" : "Inactive",
                         ScheduledWorkingHours = employee.ShiftType.ShiftHours,
                         AttendanceDate = i
                     };
@@ -117,7 +118,7 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest("'To' date must be on or after 'From' date.");
 
                 var empIds = await db.EmpUserBrDeptMappings
-                    .Where(x => x.BranchId == branchId && x.DepartmentId == departmentId && x.Employee.IsActive == true)
+                    .Where(x => x.BranchId == branchId && x.DepartmentId == departmentId)
                     .Select(x => x.EmployeeId)
                     .Distinct()
                     .ToListAsync();
@@ -206,6 +207,7 @@ namespace PPFAttendanceApi.Controllers
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
                         PhoneNumber = employee.MobileNumber,
+                        IsActive = employee.IsActive ? "Active" : "Inactive",
                         TotalScheduledHours = totalScheduledHours,
                         TotalWorkedHours = Math.Round(totalWorkedHours, 2),
                         TotalShortHours = Math.Round(totalShortHours, 2),
