@@ -365,6 +365,7 @@ namespace PPFAttendanceApi.Controllers
                             {
                                 x.EmployeeId,
                                 x.EmployeeName,
+                                x.CreatedAt,
                                 x.EmployeeFatherName,
                                 x.Cnic,
                                 x.MobileNumber,
