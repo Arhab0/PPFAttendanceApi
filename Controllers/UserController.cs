@@ -24,7 +24,6 @@ namespace PPFAttendanceApi.Controllers
             {
                 var users = await db.Users
                     .Include(x => x.Role)
-                    .Where(x => x.IsActive == true)
                     .Select(x => new
                     {
                         id = x.UserId,
@@ -35,7 +34,6 @@ namespace PPFAttendanceApi.Controllers
                         //latitude = x.Locations.Select(l => l.Latitude).FirstOrDefault(),
                         //longitude = x.Locations.Select(l => l.Longitude).FirstOrDefault(),
                         createdAt = x.CreatedAt,
-                        type = "User"
                     })
                     .ToListAsync();
 
@@ -54,7 +52,7 @@ namespace PPFAttendanceApi.Controllers
             {
                 var users = await db.Users
                     .Include(x => x.Role)
-                    .Where(x => x.IsActive == true && x.UserId == userId)
+                    .Where(x =>x.UserId == userId)
                     .Select(x => new
                     {
                         sid = x.UserId,
@@ -63,7 +61,7 @@ namespace PPFAttendanceApi.Controllers
                         RoleId = x.RoleId,
                         x.IsActive,
                     })
-                    .ToListAsync();
+                    .FirstOrDefaultAsync();
 
                 return Ok(users);
             }
@@ -168,7 +166,7 @@ namespace PPFAttendanceApi.Controllers
                 await db.SaveChangesAsync();
                 await db.Database.CommitTransactionAsync();
 
-                return Ok(new { statusCode = 200, message = $"{(userDto.RoleId == 4 ? "HR" : "Attendance Manager")} created successfully" });
+                return Ok(new { statusCode = 200, message = $"{(userDto.RoleId == 1 ? "Super Admin" : "Attendance Manager")} created successfully" });
             }
             catch (Exception ex)
             {
@@ -268,7 +266,7 @@ namespace PPFAttendanceApi.Controllers
                 await db.SaveChangesAsync();
                 await db.Database.CommitTransactionAsync();
 
-                return Ok(new { statusCode = 200, message = $"{(userDto.RoleId == 4 ? "HR" : "Attendance Manager")} created successfully" });
+                return Ok(new { statusCode = 200, message = $"{(userDto.RoleId == 1 ? "Super Admin" : "Attendance Manager")} updated successfully" });
             }
             catch (Exception ex)
             {
