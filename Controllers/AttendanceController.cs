@@ -401,49 +401,36 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpPost("UpdateAttendance")]
-        public async Task<IActionResult> UpdateAttendance(AttendanceDto dto)
+        public async Task<IActionResult> UpdateAttendance(List<AttendanceUpdateDto> dto)
         {
             try
             {
                 var roleId = int.Parse(claims["RoleId"]);
                 if (roleId != 4)
                 {
-                    return BadRequest(new {statusCode = 400, message = "Only HR can update attendance." });
+                    return BadRequest(new { statusCode = 400, message = "Only HR can update attendance." });
                 }
-                var log = await db.AttendanceLogs.FindAsync(dto.AttendanceLogId);
-                if (log == null)
+
+                if (dto.Count == 0)
                 {
-                    return NotFound(new { statusCode = 404, message = "Attendance log not found." });
+                    return BadRequest(new { statusCode = 400, message = "No attendance records provided for update." });
                 }
-                
 
-                var dto_time_in = dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage;
-                var dto_time_out = dto.TimeOutAt ?? dto.TimeOutMobile ?? dto.TimeOutImage;
-
-                log.TimeInAt = dto.TimeInAt ?? log.TimeInAt;
-                log.TimeInMobile = dto.TimeInMobile ?? log.TimeInMobile;
-                log.TimeInImage = dto.TimeInImage ?? log.TimeInImage;
-                log.TimeInBy = dto_time_in.HasValue ? "HR" : log.TimeInBy;
-
-                if(!log.TimeOutAt.HasValue || !log.TimeOutMobile.HasValue || !log.TimeOutImage.HasValue)
+                foreach (var item in dto)
                 {
-                    log.TimeOutAt = dto.TimeOutAt;
-                    log.TimeOutMobile = dto.TimeOutMobile;
-                    log.TimeOutImage = dto.TimeOutImage;
-                    log.TimeOutBy = "HR";
-                    log.AttendanceStatusId = 2;
-                }
-                else
-                {
-                    log.TimeOutAt = dto.TimeOutAt ?? log.TimeOutAt;
-                    log.TimeOutMobile = dto.TimeOutMobile ?? log.TimeOutMobile;
-                    log.TimeOutImage = dto.TimeOutImage ?? log.TimeOutImage;
-                    log.TimeOutBy = dto_time_out.HasValue ? "HR" : log.TimeOutBy;
-                }
+                    var a = await db.AttendanceLogs.Where(x => x.AttendanceLogId == item.AttendanceLogId).FirstOrDefaultAsync();
 
-                log.AttendanceDate = dto.AttendanceDate ?? log.AttendanceDate;
+                    a.TimeInAt = a.TimeInAt != item.TimeIn ? item.TimeIn : a.TimeInAt;
+                    a.TimeInMobile = a.TimeInMobile != item.TimeIn ? item.TimeIn : a.TimeInMobile;
+                    a.TimeInImage = a.TimeInImage != item.TimeIn ? item.TimeIn : a.TimeInImage;
 
-                await db.SaveChangesAsync();
+                    a.TimeOutAt = a.TimeOutAt != item.TimeOut ? item.TimeOut : a.TimeOutAt;
+                    a.TimeOutMobile = a.TimeOutMobile != item.TimeOut ? item.TimeOut : a.TimeOutMobile;
+                    a.TimeOutImage = a.TimeOutImage != item.TimeOut ? item.TimeOut : a.TimeOutImage;
+
+                    a.AttendanceStatusId = 2;
+                    await db.SaveChangesAsync();
+                }
                 return Json(new { statusCode = 200, message = "Attendance updated successfully." });
             }
             catch (Exception ex)
