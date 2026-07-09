@@ -411,6 +411,7 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest(new { statusCode = 400, message = "Only HR and Admin can update attendance." });
                 }
 
+                var roleName = await db.Roles.Where(x=>x.RoleId == roleId).Select(x=>x.RoleName).FirstOrDefaultAsync();
                 if (dto.Count == 0)
                 {
                     return BadRequest(new { statusCode = 400, message = "No attendance records provided for update." });
@@ -424,9 +425,18 @@ namespace PPFAttendanceApi.Controllers
                     a.TimeInMobile = a.TimeInMobile != item.TimeIn ? item.TimeIn : a.TimeInMobile;
                     a.TimeInImage = a.TimeInImage != item.TimeIn ? item.TimeIn : a.TimeInImage;
 
+                    if(a.TimeInAt != item.TimeIn || a.TimeInMobile != item.TimeIn || a.TimeInImage != item.TimeIn)
+                    {
+                        a.TimeInBy = roleName;
+                    }
+
                     a.TimeOutAt = a.TimeOutAt != item.TimeOut ? item.TimeOut : a.TimeOutAt;
                     a.TimeOutMobile = a.TimeOutMobile != item.TimeOut ? item.TimeOut : a.TimeOutMobile;
                     a.TimeOutImage = a.TimeOutImage != item.TimeOut ? item.TimeOut : a.TimeOutImage;
+                    if (a.TimeOutAt != item.TimeOut || a.TimeOutMobile != item.TimeOut || a.TimeOutImage != item.TimeOut)
+                    {
+                        a.TimeOutBy = roleName;
+                    }
 
                     a.AttendanceStatusId = 2;
                     await db.SaveChangesAsync();
