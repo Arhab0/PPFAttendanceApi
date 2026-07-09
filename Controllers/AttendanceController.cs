@@ -421,22 +421,22 @@ namespace PPFAttendanceApi.Controllers
                 {
                     var a = await db.AttendanceLogs.Where(x => x.AttendanceLogId == item.AttendanceLogId).FirstOrDefaultAsync();
 
-                    a.TimeInAt = a.TimeInAt != item.TimeIn ? item.TimeIn : a.TimeInAt;
-                    a.TimeInMobile = a.TimeInMobile != item.TimeIn ? item.TimeIn : a.TimeInMobile;
-                    a.TimeInImage = a.TimeInImage != item.TimeIn ? item.TimeIn : a.TimeInImage;
-
                     if(a.TimeInAt != item.TimeIn && a.TimeInMobile != item.TimeIn && a.TimeInImage != item.TimeIn)
                     {
                         a.TimeInBy = roleName;
                     }
+                    a.TimeInAt = a.TimeInAt != item.TimeIn ? item.TimeIn : a.TimeInAt;
+                    a.TimeInMobile = a.TimeInMobile != item.TimeIn ? item.TimeIn : a.TimeInMobile;
+                    a.TimeInImage = a.TimeInImage != item.TimeIn ? item.TimeIn : a.TimeInImage;
 
-                    a.TimeOutAt = a.TimeOutAt != item.TimeOut ? item.TimeOut : a.TimeOutAt;
-                    a.TimeOutMobile = a.TimeOutMobile != item.TimeOut ? item.TimeOut : a.TimeOutMobile;
-                    a.TimeOutImage = a.TimeOutImage != item.TimeOut ? item.TimeOut : a.TimeOutImage;
+
                     if (a.TimeOutAt != item.TimeOut && a.TimeOutMobile != item.TimeOut && a.TimeOutImage != item.TimeOut)
                     {
                         a.TimeOutBy = roleName;
                     }
+                    a.TimeOutAt = a.TimeOutAt != item.TimeOut ? item.TimeOut : a.TimeOutAt;
+                    a.TimeOutMobile = a.TimeOutMobile != item.TimeOut ? item.TimeOut : a.TimeOutMobile;
+                    a.TimeOutImage = a.TimeOutImage != item.TimeOut ? item.TimeOut : a.TimeOutImage;
 
                     a.AttendanceStatusId = 2;
                     await db.SaveChangesAsync();
