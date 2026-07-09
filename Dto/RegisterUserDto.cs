@@ -16,6 +16,7 @@
         public int? PaymentTypeId { get; set; }
         public int? ShiftTypeId { get; set; }
         public int EmployeeTypeId { get; set; }
+        public bool IsActive { get; set; }
         public List<BranchDepartmentMappingDto> BrDeptMapping { get; set; } = new();
     }
 
