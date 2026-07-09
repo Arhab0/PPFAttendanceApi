@@ -84,24 +84,28 @@ namespace PPFAttendanceApi.Controllers
 
                 if (e != null)
                 {
-                    var deviceCheck = await db.DeviceSessions.Where(x => e.EmployeeId == x.EmployeeId).FirstOrDefaultAsync();
-
-                    if (deviceCheck == null)
+                    if (e.RoleId != 5)
                     {
-                        await db.DeviceSessions.AddAsync(new()
+
+                        var deviceCheck = await db.DeviceSessions.Where(x => e.EmployeeId == x.EmployeeId).FirstOrDefaultAsync();
+
+                        if (deviceCheck == null)
                         {
-                            DeviceId = dto.DeviceId,
-                            DeviceName = dto.DeviceName,
-                            DevicePlatform = dto.DevicePlatform,
-                            EmployeeId = e.EmployeeId,
-                            CreatedAt = DateTime.Now
-                        });
+                            await db.DeviceSessions.AddAsync(new()
+                            {
+                                DeviceId = dto.DeviceId,
+                                DeviceName = dto.DeviceName,
+                                DevicePlatform = dto.DevicePlatform,
+                                EmployeeId = e.EmployeeId,
+                                CreatedAt = DateTime.Now
+                            });
 
-                        await db.SaveChangesAsync();
-                    }
-                    else if (deviceCheck.DeviceId != dto.DeviceId)
-                    {
-                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Employee is already logged in from another device." });
+                            await db.SaveChangesAsync();
+                        }
+                        else if (deviceCheck.DeviceId != dto.DeviceId)
+                        {
+                            return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Employee is already logged in from another device." });
+                        }
                     }
 
                     obj.Id = e.EmployeeId;
@@ -109,7 +113,7 @@ namespace PPFAttendanceApi.Controllers
                     obj.Email = e.EmployeeEmail;
                     obj.RoleId = e.RoleId;
                     obj.RoleName = e.Role.RoleName;
-                    obj.mapping = e.EmpUserBrDeptMappings.Select(x => new BranchDeptMapping { MappingId = x.BrDeptMappingId, BranchId = x.BranchId, BranchName = x.Branch.BranchName, DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
+                    //obj.mapping = e.EmpUserBrDeptMappings.Select(x => new BranchDeptMapping { MappingId = x.BrDeptMappingId, BranchId = x.BranchId, BranchName = x.Branch.BranchName, DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
 
                     var eFile = e.EmployeeFiles?.FirstOrDefault();
                     obj.File = eFile == null ? null : new()
@@ -167,24 +171,27 @@ namespace PPFAttendanceApi.Controllers
                     return Json(new { obj, token = GenerateJwtToken(e.EmployeeId, e.RoleId) });
                 }
 
-                var deviceCheck_ = await db.DeviceSessions.Where(x => m.UserId == x.UserId).FirstOrDefaultAsync();
-
-                if (deviceCheck_ == null)
+                if (m.RoleId != 5)
                 {
-                    await db.DeviceSessions.AddAsync(new()
+                    var deviceCheck_ = await db.DeviceSessions.Where(x => m.UserId == x.UserId).FirstOrDefaultAsync();
+
+                    if (deviceCheck_ == null)
                     {
-                        DeviceId = dto.DeviceId,
-                        DeviceName = dto.DeviceName,
-                        DevicePlatform = dto.DevicePlatform,
-                        UserId = m.UserId,
-                        CreatedAt = DateTime.Now
-                    });
+                        await db.DeviceSessions.AddAsync(new()
+                        {
+                            DeviceId = dto.DeviceId,
+                            DeviceName = dto.DeviceName,
+                            DevicePlatform = dto.DevicePlatform,
+                            UserId = m.UserId,
+                            CreatedAt = DateTime.Now
+                        });
 
-                    await db.SaveChangesAsync();
-                }
-                else if (deviceCheck_.DeviceId != dto.DeviceId)
-                {
-                    return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Manager is already logged in from another device." });
+                        await db.SaveChangesAsync();
+                    }
+                    else if (deviceCheck_.DeviceId != dto.DeviceId)
+                    {
+                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Manager is already logged in from another device." });
+                    }
                 }
 
                 obj.Id = m.UserId;
@@ -192,7 +199,7 @@ namespace PPFAttendanceApi.Controllers
                 obj.Email = m.UserEmail;
                 obj.RoleId = m.RoleId;
                 obj.RoleName = m.Role.RoleName;
-                obj.mapping = m.EmpUserBrDeptMappings.Select(x => new BranchDeptMapping { MappingId = x.BrDeptMappingId, BranchId = x.BranchId, BranchName = x.Branch.BranchName, DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
+                //obj.mapping = m.EmpUserBrDeptMappings.Select(x => new BranchDeptMapping { MappingId = x.BrDeptMappingId, BranchId = x.BranchId, BranchName = x.Branch.BranchName, DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
                 //obj.DepartmentId = m.DepartmentId ?? 0;
                 //obj.DepartmentName = m.Department.DepartmentName;
 
