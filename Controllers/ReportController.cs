@@ -25,6 +25,7 @@ namespace PPFAttendanceApi.Controllers
                     .AsNoTracking()
                     .Include(x => x.ShiftType)
                     .Include(x=>x.Role)
+                    .Include(x=>x.PaymentType)
                     .FirstOrDefaultAsync(x => x.EmployeeId == employeeId);
 
                 if (employee == null)
@@ -64,6 +65,7 @@ namespace PPFAttendanceApi.Controllers
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
                         PhoneNumber = employee.MobileNumber,
+                        PaymentType = employee.PaymentType.Type,
                         RoleName = employee.Role.RoleName,
                         IsActive = employee.IsActive ? "Active" : "Inactive",
                         ScheduledWorkingHours = employee.ShiftType.ShiftHours,
@@ -175,6 +177,7 @@ namespace PPFAttendanceApi.Controllers
                             EmployeeName = employee.EmployeeName,
                             EmployeeCode = employee.EmployeeCode,
                             PhoneNumber = employee.MobileNumber,
+                            PaymentType = employee.PaymentType.Type,
                             RoleName = employee.Role.RoleName,
                             IsActive = employee.IsActive ? "Active" : "Inactive",
                             TotalScheduledHours = 0,

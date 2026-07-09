@@ -6,6 +6,7 @@
         public string EmployeeCode { get; set; }
         public string PhoneNumber { get; set; }
         public string RoleName { get; set; }
+        public string PaymentType { get; set; }
         public string IsActive { get; set; }
         public int TotalScheduledHours { get; set; }
         public double TotalWorkedHours { get; set; }
