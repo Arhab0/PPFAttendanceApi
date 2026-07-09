@@ -450,6 +450,6 @@ namespace PPFAttendanceApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
-        })
+        }
     }
 }

@@ -130,6 +130,40 @@ namespace PPFAttendanceApi.Controllers
                             Radius = x.Radius,
                         }).ToListAsync();
 
+                    if (e.RoleId == 5 || e.RoleId == 4)
+                    {
+                        obj.Employees = db.Employees
+                            .AsNoTracking()
+                            .Include(x => x.Role)
+                            .Include(x => x.Locations)
+                            .Where(e => e.IsActive == true && e.RoleId == 3).Select(x => new RegisteredEmployeesData()
+                            {
+
+                                EmployeeId = x.EmployeeId,
+                                EmployeeName = x.EmployeeName,
+                                EmployeeEmail = x.EmployeeEmail,
+                                EmployeeCode = x.EmployeeCode,
+                                MobileNumber = x.MobileNumber,
+                                File = x.EmployeeFiles
+                                .Select(f => new FileDto
+                                {
+                                    FileId = f.EmployeeFileId,
+                                    FilePath = $"/images/employee/{x.EmployeeCode}/{f.FilePath}",
+                                    Extension = f.Extension,
+                                    Sid = x.EmployeeId
+                                }).FirstOrDefault(),
+
+                                Locations_ = x.Locations.Select(l => new UserLocationDto()
+                                {
+                                    LocationId = l.LocationId,
+                                    Latitude = l.Latitude,
+                                    Longitude = l.Longitude,
+                                    LocationType = l.LocationName,
+                                    Radius = l.Radius
+                                }).ToList()
+                            }).ToList();
+                    }
+
                     return Json(new { obj, token = GenerateJwtToken(e.EmployeeId, e.RoleId) });
                 }
 
