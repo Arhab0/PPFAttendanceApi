@@ -110,6 +110,7 @@ namespace PPFAttendanceApi.Controllers
 
         // Employee Attendance Summary
         [HttpGet("EmployeeAttendanceSummary")]
+        [AllowAnonymous]
         public async Task<IActionResult> EmployeeAttendanceSummary(int branchId = 0, int departmentId = 0, DateTime? From = null, DateTime? To = null)
         {
             try
@@ -140,6 +141,7 @@ namespace PPFAttendanceApi.Controllers
                 var employees = await db.Employees.AsNoTracking()
                     .Include(x => x.ShiftType)
                     .Include(x=>x.Role)
+                    .Include(x=> x.PaymentType)
                     .Where(x => empIds.Contains(x.EmployeeId))
                     .ToListAsync();
 
@@ -177,8 +179,8 @@ namespace PPFAttendanceApi.Controllers
                             EmployeeName = employee.EmployeeName,
                             EmployeeCode = employee.EmployeeCode,
                             PhoneNumber = employee.MobileNumber,
-                            PaymentType = employee.PaymentType.Type,
-                            RoleName = employee.Role.RoleName,
+                            PaymentType = employee?.PaymentType?.Type,
+                            RoleName = employee?.Role?.RoleName,
                             IsActive = employee.IsActive ? "Active" : "Inactive",
                             TotalScheduledHours = 0,
                             TotalWorkedHours = 0,
@@ -246,6 +248,8 @@ namespace PPFAttendanceApi.Controllers
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
                         PhoneNumber = employee.MobileNumber,
+                        PaymentType = employee.PaymentType.Type,
+                        RoleName = employee.Role.RoleName,
                         IsActive = employee.IsActive ? "Active" : "Inactive",
                         TotalScheduledHours = totalScheduledHours,
                         TotalWorkedHours = Math.Round(totalWorkedHours, 2),
