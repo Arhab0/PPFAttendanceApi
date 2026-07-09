@@ -406,7 +406,7 @@ namespace PPFAttendanceApi.Controllers
             try
             {
                 var roleId = int.Parse(claims["RoleId"]);
-                if (roleId != 4 || roleId != 5)
+                if (roleId != 4 && roleId != 1)
                 {
                     return BadRequest(new { statusCode = 400, message = "Only HR and Admin can update attendance." });
                 }
@@ -425,7 +425,7 @@ namespace PPFAttendanceApi.Controllers
                     a.TimeInMobile = a.TimeInMobile != item.TimeIn ? item.TimeIn : a.TimeInMobile;
                     a.TimeInImage = a.TimeInImage != item.TimeIn ? item.TimeIn : a.TimeInImage;
 
-                    if(a.TimeInAt != item.TimeIn || a.TimeInMobile != item.TimeIn || a.TimeInImage != item.TimeIn)
+                    if(a.TimeInAt != item.TimeIn && a.TimeInMobile != item.TimeIn && a.TimeInImage != item.TimeIn)
                     {
                         a.TimeInBy = roleName;
                     }
@@ -433,7 +433,7 @@ namespace PPFAttendanceApi.Controllers
                     a.TimeOutAt = a.TimeOutAt != item.TimeOut ? item.TimeOut : a.TimeOutAt;
                     a.TimeOutMobile = a.TimeOutMobile != item.TimeOut ? item.TimeOut : a.TimeOutMobile;
                     a.TimeOutImage = a.TimeOutImage != item.TimeOut ? item.TimeOut : a.TimeOutImage;
-                    if (a.TimeOutAt != item.TimeOut || a.TimeOutMobile != item.TimeOut || a.TimeOutImage != item.TimeOut)
+                    if (a.TimeOutAt != item.TimeOut && a.TimeOutMobile != item.TimeOut && a.TimeOutImage != item.TimeOut)
                     {
                         a.TimeOutBy = roleName;
                     }
