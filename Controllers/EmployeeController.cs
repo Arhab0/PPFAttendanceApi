@@ -81,9 +81,8 @@ namespace PPFAttendanceApi.Controllers
                 db.Employees.Add(employee);
                 await db.SaveChangesAsync();
 
-                var next = 1;
                 var count = await db.Employees.CountAsync();
-                employee.EmployeeCode = "EMP-" + (count + next).ToString("D4");
+                employee.EmployeeCode = "EMP-" + count.ToString("D4");
 
                 if (!string.IsNullOrEmpty(dto.Password) && !string.IsNullOrEmpty(dto.Email))
                 {
