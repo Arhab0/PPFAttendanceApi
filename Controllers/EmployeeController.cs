@@ -265,6 +265,7 @@ namespace PPFAttendanceApi.Controllers
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
                             .Include(x => x.EmployeeFiles)
+                            .Include(x=>x.Role)
                             .Select(x => new
                             {
                                 x.EmployeeId,
@@ -282,6 +283,8 @@ namespace PPFAttendanceApi.Controllers
                                 ShiftType = x.ShiftType.Type,
                                 x.PaymentTypeId,
                                 PaymentType = x.PaymentType.Type,
+                                x.RoleId,
+                                x.Role.RoleName,
                                 MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
                                 DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
                                 OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
@@ -313,6 +316,7 @@ namespace PPFAttendanceApi.Controllers
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
                             .Include(x => x.EmployeeFiles)
+                            .Include(x=>x.Role)
                             .Select(x => new
                             {
                                 x.EmployeeId,
@@ -330,6 +334,8 @@ namespace PPFAttendanceApi.Controllers
                                 ShiftType = x.ShiftType.Type,
                                 x.PaymentTypeId,
                                 PaymentType = x.PaymentType.Type,
+                                x.RoleId,
+                                x.Role.RoleName,
                                 MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
                                 DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
                                 OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
@@ -361,6 +367,7 @@ namespace PPFAttendanceApi.Controllers
                             .Include(x => x.EmployeeType)
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
+                            .Include(x=>x.Role)
                             .Select(x => new
                             {
                                 x.EmployeeId,
@@ -379,6 +386,8 @@ namespace PPFAttendanceApi.Controllers
                                 x.ShiftTypeId,
                                 ShiftType = x.ShiftType.Type,
                                 x.PaymentTypeId,
+                                x.RoleId,
+                                x.Role.RoleName,
                                 PaymentType = x.PaymentType.Type,
                                 MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
                                 Department = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).First().Department.DepartmentName,
@@ -418,6 +427,7 @@ namespace PPFAttendanceApi.Controllers
                         EmployeeId = employeeId,
                         EmployeeName = data.EmployeeName,
                         EmployeeCode = data.EmployeeCode,
+                        AttendanceLogId = log.AttendanceLogId,
                         AttendanceDate = date_in?.Date,
                         CheckInAt = date_in?.ToShortTimeString(),
                         CheckInLocation = log.TimeInLocationName,

@@ -2,6 +2,7 @@
 {
     public class AttendanceDto
     {
+        public int? AttendanceLogId { get; set; }
         public string Action { get; set; }
         public int? sid { get; set; }
         public string? TimeInLat { get; set; }
@@ -22,5 +23,6 @@
         public DateTime? TimeOutImage { get; set; }
         public string? TimeOutType { get; set; }
         public IFormFile? AttendanceOutImage { get; set; }
+        public DateOnly? AttendanceDate { get; set; }
     }
 }

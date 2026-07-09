@@ -20,7 +20,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var roles = await db.Roles.Select(x => new { x.RoleId, x.RoleName, x.CreatedAt }).ToListAsync();
+                var roles = await db.Roles.Select(x => new { value = x.RoleId, label = x.RoleName}).ToListAsync();
                 return Json(roles);
             }
             catch (Exception e)
@@ -34,7 +34,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var paymentTypes = await db.PaymentTypes.Select(x => new { x.PaymentTypeId, x.Type }).ToListAsync();
+                var paymentTypes = await db.PaymentTypes.Select(x => new { value = x.PaymentTypeId, label = x.Type }).ToListAsync();
                 return Json(paymentTypes);
             }
             catch (Exception e)
@@ -48,8 +48,8 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var shiftTypes = await db.ShiftTypes.Select(x => new { x.ShiftTypeId, x.Type }).ToListAsync();
-                return Json(shiftTypes);
+                var shiftTypes = await db.ShiftTypes.Select(x => new { value = x.ShiftTypeId, label = x.Type }).ToListAsync();
+                return Json(shiftTypes);    
             }
             catch (Exception e)
             {
@@ -62,7 +62,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var employeeTypes = await db.EmployeeTypes.Select(x => new { x.EmployeeTypeId, x.Type }).ToListAsync();
+                var employeeTypes = await db.EmployeeTypes.Select(x => new { value = x.EmployeeTypeId, label = x.Type }).ToListAsync();
                 return Json(employeeTypes);
             }
             catch (Exception e)
@@ -76,7 +76,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var branches = await db.Branches.Where(x=>x.IsActive == true).Select(x => new { x.BranchId, x.BranchName}).ToListAsync();
+                var branches = await db.Branches.Where(x=>x.IsActive == true).Select(x => new { value = x.BranchId, label = x.BranchName }).ToListAsync();
                 return Json(branches);
             }
             catch (Exception e)

@@ -25,6 +25,7 @@ namespace PPFAttendanceApi.Controllers
                 var employee = await db.Employees
                     .AsNoTracking()
                     .Include(x => x.ShiftType)
+                    .Include(x=>x.Role)
                     .FirstOrDefaultAsync(x => x.EmployeeId == employeeId);
 
                 if (employee == null)
@@ -64,6 +65,7 @@ namespace PPFAttendanceApi.Controllers
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
                         PhoneNumber = employee.MobileNumber,
+                        RoleName = employee.Role.RoleName,
                         IsActive = employee.IsActive ? "Active" : "Inactive",
                         ScheduledWorkingHours = employee.ShiftType.ShiftHours,
                         AttendanceDate = i
@@ -107,20 +109,27 @@ namespace PPFAttendanceApi.Controllers
 
         // Employee Attendance Summary
         [HttpGet("EmployeeAttendanceSummary")]
-        public async Task<IActionResult> EmployeeAttendanceSummary(int branchId, int departmentId, DateTime From, DateTime To)
+        [AllowAnonymous]
+        public async Task<IActionResult> EmployeeAttendanceSummary(int branchId = 0, int departmentId = 0, DateTime? From = null, DateTime? To = null)
         {
             try
             {
-                DateOnly fromDate = DateOnly.FromDateTime(From);
-                DateOnly toDate = DateOnly.FromDateTime(To);
+                var f = From ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                var t = To ?? f.AddMonths(1).AddDays(-1);
+
+                DateOnly fromDate = DateOnly.FromDateTime(f);
+                DateOnly toDate = DateOnly.FromDateTime(t);
                 var toDateExclusive = toDate.AddDays(1);
-                var totalDays = (To.Date - From.Date).Days + 1;
+                var totalDays = (To?.Date - From?.Date)?.Days + 1;
 
                 if (totalDays <= 0)
                     return BadRequest("'To' date must be on or after 'From' date.");
 
                 var empIds = await db.EmpUserBrDeptMappings
-                    .Where(x => x.BranchId == branchId && x.DepartmentId == departmentId)
+                    .Where(e =>
+                        (branchId == 0 || e.BranchId == branchId) &&
+                        (departmentId == 0 || e.DepartmentId == departmentId)
+                    )
                     .Select(x => x.EmployeeId)
                     .Distinct()
                     .ToListAsync();
@@ -130,6 +139,7 @@ namespace PPFAttendanceApi.Controllers
 
                 var employees = await db.Employees.AsNoTracking()
                     .Include(x => x.ShiftType)
+                    .Include(x=>x.Role)
                     .Where(x => empIds.Contains(x.EmployeeId))
                     .ToListAsync();
 
@@ -149,82 +159,13 @@ namespace PPFAttendanceApi.Controllers
 
                 var report = new List<EmployeeAttendanceSummaryDto>();
 
-                //foreach (var employee in employees)
-                //{
-                //    var shiftHours = employee.ShiftType.ShiftHours;
-
-                //    double totalWorkedHours = 0;
-                //    double totalShortHours = 0;
-                //    double totalExcessHours = 0;
-                //    int totalPresentDays = 0;
-                //    int totalAbsentDays = 0;
-
-                //    logsByEmployee.TryGetValue(employee.EmployeeId, out var employeeLogsByDate);
-
-                //    var minusDays = 0;
-                //    for (var day = fromDate; day <= toDate; day = day.AddDays(1))
-                //    {
-                //        AttendanceLog log = null;
-                //        employeeLogsByDate?.TryGetValue(day, out log);
-
-                //        if (log == null)
-                //        {
-                //            if (day.DayOfWeek == DayOfWeek.Sunday)
-                //            {
-                //                minusDays++;
-                //                continue;
-                //            }
-                //            totalAbsentDays++;
-                //            continue;
-                //        }
-
-                //        var timeIn = log.TimeInAt ?? log.TimeInMobile ?? log.TimeInImage;
-                //        var timeOut = log.TimeOutAt ?? log.TimeOutMobile ?? log.TimeOutImage;
-
-                //        if (!timeIn.HasValue)
-                //        {
-                //            totalAbsentDays++;
-                //            continue;
-                //        }
-
-                //        totalPresentDays++;
-
-                //        if (timeOut.HasValue)
-                //        {
-                //            var workedHours = (timeOut.Value - timeIn.Value).TotalHours;
-                //            totalWorkedHours += workedHours;
-
-                //            var diff = workedHours - shiftHours;
-                //            if (diff < 0)
-                //                totalShortHours += Math.Abs(diff);
-                //            else
-                //                totalExcessHours += diff;
-                //        }
-                //    }
-
-                //    var totalScheduledHours = shiftHours * (totalDays - minusDays);
-
-                //    report.Add(new EmployeeAttendanceSummaryDto
-                //    {
-                //        EmployeeName = employee.EmployeeName,
-                //        EmployeeCode = employee.EmployeeCode,
-                //        PhoneNumber = employee.MobileNumber,
-                //        IsActive = employee.IsActive ? "Active" : "Inactive",
-                //        TotalScheduledHours = totalScheduledHours,
-                //        TotalWorkedHours = Math.Round(totalWorkedHours, 2),
-                //        TotalShortHours = Math.Round(totalShortHours, 2),
-                //        TotalExcessHours = Math.Round(totalExcessHours, 2),
-                //        TotalPresentDays = totalPresentDays,
-                //        TotalAbsentDays = totalAbsentDays
-                //    });
-                //}
+          
                 foreach (var employee in employees)
                 {
                    
                     var shiftHours = employee.ShiftType.ShiftHours;
 
-                    // Clamp the effective range to this employee's tenure.
-                    var employeeFromDate = employee.CreatedAt.Date > From.Date
+                    var employeeFromDate = employee.CreatedAt.Date > From?.Date
                         ? DateOnly.FromDateTime(employee.CreatedAt.Date)
                         : fromDate;
 
@@ -236,6 +177,7 @@ namespace PPFAttendanceApi.Controllers
                             EmployeeName = employee.EmployeeName,
                             EmployeeCode = employee.EmployeeCode,
                             PhoneNumber = employee.MobileNumber,
+                            RoleName = employee.Role.RoleName,
                             IsActive = employee.IsActive ? "Active" : "Inactive",
                             TotalScheduledHours = 0,
                             TotalWorkedHours = 0,
@@ -295,9 +237,8 @@ namespace PPFAttendanceApi.Controllers
                                 totalExcessHours += diff;
                         }
                     }
-
-                    var effectiveDays = (toDate.DayNumber - employeeFromDate.DayNumber + 1) - minusDays;
-                    var totalScheduledHours = shiftHours * effectiveDays;
+                    
+                    var totalScheduledHours = shiftHours * totalPresentDays;
 
                     report.Add(new EmployeeAttendanceSummaryDto
                     {

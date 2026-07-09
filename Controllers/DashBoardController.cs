@@ -108,6 +108,8 @@ namespace PPFAttendanceApi.Controllers
                 var rawLogs = await attendance
                             .OrderByDescending(a => a.TimeInAt ?? a.TimeInMobile ?? a.TimeInImage)
                             .Include(a => a.Employee)
+                                .ThenInclude(e => e.Role)
+                            .Include(a => a.Employee)
                                 .ThenInclude(e => e.ShiftType)
                             .Include(a => a.Employee)
                                 .ThenInclude(e => e.EmpUserBrDeptMappings)
@@ -142,6 +144,7 @@ namespace PPFAttendanceApi.Controllers
                         log.EmployeeId,
                         log.Employee.EmployeeName,
                         log.Employee.EmployeeCode,
+                        log.Employee.Role.RoleName,
                         BranchName = log.Employee.EmpUserBrDeptMappings
                             .Where(x => x.IsPrimaryBranch == true)
                             .Select(x => x.Branch.BranchName)
@@ -176,12 +179,6 @@ namespace PPFAttendanceApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
-        }
-
-        private static string GetDate(DateTime? date_1, DateTime? date_2, DateTime? date_3)
-        {
-            var date = date_1 ?? date_2 ?? date_3;
-            return date?.ToString("dd-MMM-yyyy");
         }
     }
 }

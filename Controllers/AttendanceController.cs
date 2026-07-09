@@ -400,134 +400,56 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
-        [HttpPost("SyncAttendance")]
-        public async Task<IActionResult> SyncAttendance(List<AttendanceDto> dto)
+        [HttpPost("UpdateAttendance")]
+        public async Task<IActionResult> UpdateAttendance(AttendanceDto dto)
         {
-            await db.Database.BeginTransactionAsync();
             try
             {
-                if (dto.Count == 0)
-                    return BadRequest(new { statusCode = 400, message = "No attendance data to sync." });
-
-                var sid = int.Parse(claims["sid"]);
                 var roleId = int.Parse(claims["RoleId"]);
-                var employeeData = roleId == 3
-                    ? await db.Employees.AsNoTracking().Where(x => x.EmployeeId == sid).FirstOrDefaultAsync()
-                    : null;
-
-                var existingLogs = roleId == 3
-                    ? await db.AttendanceLogs.Where(x => x.EmployeeId == sid).ToListAsync()
-                    : await db.AttendanceLogs.Where(x => x.UserId == sid).ToListAsync();
-
-                var existingByDate = existingLogs
-                    .Where(x => x.TimeInAt.HasValue || x.TimeInMobile.HasValue || x.TimeInImage.HasValue)
-                    .GroupBy(x => (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date)
-                    .ToDictionary(g => g.Key, g => g.First());
-
-                var newEntries = new List<AttendanceDto>();
-                var skipped = new List<string>();
-                var updatedCount = 0;
-
-                foreach (var item in dto)
+                if (roleId != 4)
                 {
-                    var itemDate = item.TimeInAt != null
-                        ? item.TimeInAt
-                        : item.TimeInMobile != null
-                        ? item.TimeInMobile
-                        : item.TimeInImage;
+                    return BadRequest(new {statusCode = 400, message = "Only HR can update attendance." });
+                }
+                var log = await db.AttendanceLogs.FindAsync(dto.AttendanceLogId);
+                if (log == null)
+                {
+                    return NotFound(new { statusCode = 404, message = "Attendance log not found." });
+                }
+                
 
-                    if (itemDate == null)
-                    {
-                        skipped.Add("Skipped one entry — TimeInAt and TimeInMobile and TimeInImage are missing.");
-                        continue;
-                    }
+                var dto_time_in = dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage;
+                var dto_time_out = dto.TimeOutAt ?? dto.TimeOutMobile ?? dto.TimeOutImage;
 
-                    var date = itemDate.Value.Date;
+                log.TimeInAt = dto.TimeInAt ?? log.TimeInAt;
+                log.TimeInMobile = dto.TimeInMobile ?? log.TimeInMobile;
+                log.TimeInImage = dto.TimeInImage ?? log.TimeInImage;
+                log.TimeInBy = dto_time_in.HasValue ? "HR" : log.TimeInBy;
 
-                    if (existingByDate.TryGetValue(date, out var existingLog))
-                    {
-                        if (existingLog.TimeOutAt == null && existingLog.TimeOutMobile == null && existingLog.TimeOutImage == null
-                            && (item.TimeOutAt != null || item.TimeOutMobile != null || item.TimeOutImage != null))
-                        {
-                            existingLog.AttendanceOutLat = item.TimeOutLat;
-                            existingLog.AttendanceOutLon = item.TimeOutLon;
-                            existingLog.TimeOutAt = item.TimeOutAt ?? null;
-                            existingLog.TimeOutMobile = item.TimeOutMobile ?? null;
-                            existingLog.TimeOutImage = item.TimeOutImage ?? null;
-                            existingLog.TimeOutLocationName = item.TimeOutLocationName;
-                            existingLog.TimeOutBy = "Self";
-                            existingLog.TimeOutType = item.TimeOutType;
-                            existingLog.AttendanceStatusId = 2;
-                            existingLog.AttendanceOutImagePath = item.AttendanceOutImage != null ? await (employeeData != null ? UploadDoc.UploadEmployeeAttendaceImage(item.AttendanceOutImage, employeeData.EmployeeCode) : UploadDoc.UploadStaffAttendaceImage(item.AttendanceOutImage, sid.ToString())) : "No Image Provided";
-                            updatedCount++;
-                        }
-                    }
-                    else
-                    {
-                        if (string.IsNullOrEmpty(item.TimeInLat) ||
-                            string.IsNullOrEmpty(item.TimeInLon) ||
-                            string.IsNullOrEmpty(item.TimeInLocationName) ||
-                            item.AttendanceInImage == null
-                            )
-                        {
-                            skipped.Add($"Skipped {date.ToShortDateString()} — TimeIn location fields missing.");
-                            continue;
-                        }
-                        newEntries.Add(item);
-                    }
+                if(!log.TimeOutAt.HasValue || !log.TimeOutMobile.HasValue || !log.TimeOutImage.HasValue)
+                {
+                    log.TimeOutAt = dto.TimeOutAt;
+                    log.TimeOutMobile = dto.TimeOutMobile;
+                    log.TimeOutImage = dto.TimeOutImage;
+                    log.TimeOutBy = "HR";
+                    log.AttendanceStatusId = 2;
+                }
+                else
+                {
+                    log.TimeOutAt = dto.TimeOutAt ?? log.TimeOutAt;
+                    log.TimeOutMobile = dto.TimeOutMobile ?? log.TimeOutMobile;
+                    log.TimeOutImage = dto.TimeOutImage ?? log.TimeOutImage;
+                    log.TimeOutBy = dto_time_out.HasValue ? "HR" : log.TimeOutBy;
                 }
 
-                if (newEntries.Count == 0 && updatedCount == 0)
-                    return Json(new { statusCode = 200, message = "No new attendance data to sync.", skipped });
+                log.AttendanceDate = dto.AttendanceDate ?? log.AttendanceDate;
 
-                var logs = await Task.WhenAll(newEntries.Select(async item =>
-                {
-                    var log = new AttendanceLog
-                    {
-                        AttendanceInLat = item.TimeInLat,
-                        AttendanceInLon = item.TimeInLon,
-                        TimeInAt = item.TimeInAt ?? null,
-                        TimeInMobile = item.TimeInMobile ?? null,
-                        TimeInImage = item.TimeInImage ?? null,
-                        TimeInLocationName = item.TimeInLocationName,
-                        TimeInBy = "Self",
-                        TimeInType = item.TimeInType,
-                        AttendanceInImagePath = item.AttendanceInImage != null ? await (employeeData != null ? UploadDoc.UploadEmployeeAttendaceImage(item.AttendanceInImage, employeeData.EmployeeCode) : UploadDoc.UploadStaffAttendaceImage(item.AttendanceInImage, sid.ToString())) : "no image provided",
-                        AttendanceOutLat = item.TimeOutLat,
-                        AttendanceOutLon = item.TimeOutLon,
-                        TimeOutAt = item.TimeOutAt ?? null,
-                        TimeOutMobile = item.TimeOutMobile ?? null,
-                        TimeOutImage = item.TimeOutImage ?? null,
-                        TimeOutLocationName = item.TimeOutLocationName,
-                        TimeOutBy = (item.TimeOutAt != null || item.TimeOutMobile != null || item.TimeOutImage != null) ? "Self" : null,
-                        TimeOutType = item.TimeOutType,
-                        AttendanceOutImagePath = item.AttendanceOutImage != null ? await (employeeData != null ? UploadDoc.UploadEmployeeAttendaceImage(item.AttendanceOutImage, employeeData.EmployeeCode) : UploadDoc.UploadStaffAttendaceImage(item.AttendanceOutImage, sid.ToString())) : "no image provided",
-
-                        AttendanceStatusId = (item.TimeOutAt != null || item.TimeOutMobile != null || item.TimeOutImage != null) ? 2 : 1
-                    };
-
-                    if (roleId == 3) log.EmployeeId = sid;
-                    else log.UserId = sid;
-
-                    return log;
-                }).ToList());
-
-                await db.AttendanceLogs.AddRangeAsync(logs);
                 await db.SaveChangesAsync();
-                await db.Database.CommitTransactionAsync();
-
-                return Json(new
-                {
-                    statusCode = 200,
-                    message = $"Synced {logs.Length} new and updated {updatedCount} existing records successfully.",
-                    skipped
-                });
+                return Json(new { statusCode = 200, message = "Attendance updated successfully." });
             }
             catch (Exception ex)
             {
-                await db.Database.RollbackTransactionAsync();
                 return BadRequest(ex.Message);
             }
-        }
+        })
     }
 }
