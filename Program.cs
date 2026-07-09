@@ -44,7 +44,7 @@ builder.Services.AddScoped<ClaimsService>();
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("PPF", policy =>
+    options.AddPolicy("CAMS", policy =>
     {
         policy
             .WithOrigins(
@@ -89,9 +89,9 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "PPF API",
+        Title = "CAMS API",
         Version = "v1",
-        Description = "PPF Attendance System API"
+        Description = "CAMS Attendance System API"
     });
 
     // JWT Support in Swagger
@@ -128,7 +128,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "PPF API v1");
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "CAMS API v1");
     options.RoutePrefix = "swagger";
 });
 
@@ -137,7 +137,7 @@ app.UseSwaggerUI(options =>
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseStaticFiles();
-app.UseCors("PPF");
+app.UseCors("CAMS");
 
 app.UseAuthentication();
 app.UseAuthorization();
