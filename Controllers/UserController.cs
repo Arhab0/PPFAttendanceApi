@@ -84,7 +84,7 @@ namespace PPFAttendanceApi.Controllers
                     log.CreatedAt = DateTime.Now;
                     log.Description = $"Super Admin created another Super Admin";
                 }
-                else if (userDto.RoleId == 4 || userDto.RoleId == 5)
+                else if (userDto.RoleId == 4)
                 {
                     User user = new()
                     {
