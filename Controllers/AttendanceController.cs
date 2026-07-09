@@ -408,7 +408,7 @@ namespace PPFAttendanceApi.Controllers
                 var roleId = int.Parse(claims["RoleId"]);
                 if (roleId != 4 || roleId != 5)
                 {
-                    return BadRequest(new { statusCode = 400, message = "Only HR can update attendance." });
+                    return BadRequest(new { statusCode = 400, message = "Only HR and Admin can update attendance." });
                 }
 
                 if (dto.Count == 0)
