@@ -8,18 +8,13 @@
         public string RoleName { get; set; }
         public string PaymentType { get; set; }
         public string IsActive { get; set; }
-        public BranchDeptNames BrDept_ { get; set; } = new();
+        public string BranchName { get; set; }
+        public string DepartmentName { get; set; }
         public int TotalScheduledHours { get; set; }
         public double TotalWorkedHours { get; set; }
         public double TotalShortHours { get; set; }
         public double TotalExcessHours { get; set; }
         public int TotalPresentDays { get; set; }
         public int TotalAbsentDays { get; set; }
-    }
-
-    public class BranchDeptNames
-    {
-        public string BranchName { get; set; }
-        public string DepartmentName { get; set; }
     }
 }
