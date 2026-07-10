@@ -143,6 +143,10 @@ namespace PPFAttendanceApi.Controllers
                     .Include(x=>x.Role)
                     .Include(x=> x.PaymentType)
                     .Where(x => empIds.Contains(x.EmployeeId))
+                    .Include(emp=>emp.EmpUserBrDeptMappings.Where(b=>b.IsPrimaryBranch == true))
+                        .ThenInclude(x=>x.Department)
+                    .Include(emp => emp.EmpUserBrDeptMappings.Where(b => b.IsPrimaryBranch == true))
+                        .ThenInclude(x => x.Branch)
                     .ToListAsync();
 
                 var logs = await db.AttendanceLogs.AsNoTracking()
@@ -181,6 +185,7 @@ namespace PPFAttendanceApi.Controllers
                             PhoneNumber = employee.MobileNumber,
                             PaymentType = employee?.PaymentType?.Type,
                             RoleName = employee?.Role?.RoleName,
+                            BrDept_ =  employee.EmpUserBrDeptMappings.Where(h => h.IsPrimaryBranch == true).Select(x => new BranchDeptNames{ BranchName = x.Branch.BranchName, DepartmentName = x.Department.DepartmentName }).FirstOrDefault() ,
                             IsActive = employee.IsActive ? "Active" : "Inactive",
                             TotalScheduledHours = 0,
                             TotalWorkedHours = 0,
@@ -250,6 +255,7 @@ namespace PPFAttendanceApi.Controllers
                         PhoneNumber = employee.MobileNumber,
                         PaymentType = employee.PaymentType.Type,
                         RoleName = employee.Role.RoleName,
+                        BrDept_ = employee.EmpUserBrDeptMappings.Where(h => h.IsPrimaryBranch == true).Select(x => new BranchDeptNames { BranchName = x.Branch.BranchName, DepartmentName = x.Department.DepartmentName }).FirstOrDefault(),
                         IsActive = employee.IsActive ? "Active" : "Inactive",
                         TotalScheduledHours = totalScheduledHours,
                         TotalWorkedHours = Math.Round(totalWorkedHours, 2),
