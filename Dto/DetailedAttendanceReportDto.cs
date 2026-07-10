@@ -2,6 +2,7 @@
 {
     public class DetailedAttendanceReportDto
     {
+        public int EmployeeId { get; set; }
         public string EmployeeName { get; set; }
         public string EmployeeCode { get; set; }
         public string PhoneNumber { get; set; }

@@ -17,88 +17,94 @@ namespace PPFAttendanceApi.Controllers
 
         // Attendance Reports Required
         [HttpGet("DetailedAttendanceReport")]
-        public async Task<IActionResult> DetailedAttendanceReport(int employeeId, DateTime From, DateTime To)
+        public async Task<IActionResult> DetailedAttendanceReport(int employeeId = 0, DateTime? From = null, DateTime? To = null)
         {
             try
             {
-                var employee = await db.Employees
+                var f = From ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                var t = To ?? f.AddMonths(1).AddDays(-1);
+
+                var employees = await db.Employees
                     .AsNoTracking()
                     .Include(x => x.ShiftType)
-                    .Include(x=>x.Role)
-                    .Include(x=>x.PaymentType)
-                    .FirstOrDefaultAsync(x => x.EmployeeId == employeeId);
-
-                if (employee == null)
-                    return NotFound($"Employee {employeeId} not found.");
-
-                if (employee.ShiftType == null)
-                    return BadRequest("Employee has no shift type configured.");
-
-                var fromDate = employee.CreatedAt.Date > From.Date
-                            ? DateOnly.FromDateTime(employee.CreatedAt.Date)
-                            : DateOnly.FromDateTime(From);
-                var toDate = DateOnly.FromDateTime(To);
-                var toDateExclusive = toDate.AddDays(1);
-
-                var logs = await db.AttendanceLogs.AsNoTracking()
-                    .Where(x => x.EmployeeId == employeeId &&
-                    (x.AttendanceDate != null && x.AttendanceDate >= fromDate && x.AttendanceDate < toDateExclusive))
+                    .Include(x => x.Role)
+                    .Include(x => x.PaymentType)
+                    .Where(x => employeeId == 0 || x.EmployeeId == employeeId)
                     .ToListAsync();
 
-                var byDate = logs
-                    .OrderBy(x => x.AttendanceDate)
-                    .GroupBy(x => x.AttendanceDate)
-                    .ToDictionary(g => g.Key, g => g.First());
+                if (employees.Count == 0)
+                    return NotFound($"Employee {employeeId} not found.");
 
                 var report = new List<DetailedAttendanceReportDto>();
-
-                for (var i = fromDate; i <= toDate; i = i.AddDays(1))
+                foreach (var employee in employees)
                 {
-                    byDate.TryGetValue(i, out var log);
+                    var fromDate = employee.CreatedAt.Date > f.Date
+                                ? DateOnly.FromDateTime(employee.CreatedAt.Date)
+                                : DateOnly.FromDateTime(f);
+                    var toDate = DateOnly.FromDateTime(t);
+                    var toDateExclusive = toDate.AddDays(1);
 
-                    if (log == null && i.DayOfWeek == DayOfWeek.Sunday)
+                    var logs = await db.AttendanceLogs.AsNoTracking()
+                        .Where(x => x.EmployeeId == employeeId &&
+                        (x.AttendanceDate != null && x.AttendanceDate >= fromDate && x.AttendanceDate < toDateExclusive))
+                        .ToListAsync();
+
+                    var byDate = logs
+                        .OrderBy(x => x.AttendanceDate)
+                        .GroupBy(x => x.AttendanceDate)
+                        .ToDictionary(g => g.Key, g => g.First());
+
+
+                    for (var i = fromDate; i <= toDate; i = i.AddDays(1))
                     {
-                        continue;
+                        byDate.TryGetValue(i, out var log);
+
+                        if (log == null && i.DayOfWeek == DayOfWeek.Sunday)
+                        {
+                            continue;
+                        }
+                        var dto = new DetailedAttendanceReportDto
+                        {
+                            EmployeeId = employee.EmployeeId,
+                            EmployeeName = employee.EmployeeName,
+                            EmployeeCode = employee.EmployeeCode,
+                            PhoneNumber = employee.MobileNumber,
+                            PaymentType = employee.PaymentType.Type,
+                            RoleName = employee.Role.RoleName,
+                            IsActive = employee.IsActive ? "Active" : "Inactive",
+                            ScheduledWorkingHours = employee.ShiftType.ShiftHours,
+                            AttendanceDate = i
+                        };
+
+                        if (log == null)
+                        {
+                            dto.WorkedHours = "0";
+                            dto.Difference = 0;
+                            dto.PresentStatus = "Absent";
+                        }
+                        else
+                        {
+                            var timeIn = log.TimeInAt ?? log.TimeInMobile ?? log.TimeInImage;
+                            var timeOut = log.TimeOutAt ?? log.TimeOutMobile ?? log.TimeOutImage;
+                            dto.PresentStatus = "Present";
+                            TimeSpan? worked = (timeIn.HasValue && timeOut.HasValue)
+                                ? timeOut.Value - timeIn.Value
+                                : null;
+
+                            dto.TimeIn = timeIn;
+                            dto.TimeOut = timeOut;
+                            dto.WorkedHours = worked.HasValue
+                                ? $"{(int)worked.Value.TotalHours}h {worked.Value.Minutes}m"
+                                : "Incomplete";
+                            dto.Difference = worked.HasValue
+                                ? Math.Round(worked.Value.TotalHours - employee.ShiftType.ShiftHours, 2)
+                                : 0;
+                        }
+
+                        report.Add(dto);
                     }
-                    var dto = new DetailedAttendanceReportDto
-                    {
-                        EmployeeName = employee.EmployeeName,
-                        EmployeeCode = employee.EmployeeCode,
-                        PhoneNumber = employee.MobileNumber,
-                        PaymentType = employee.PaymentType.Type,
-                        RoleName = employee.Role.RoleName,
-                        IsActive = employee.IsActive ? "Active" : "Inactive",
-                        ScheduledWorkingHours = employee.ShiftType.ShiftHours,
-                        AttendanceDate = i
-                    };
-
-                    if (log == null)
-                    {
-                        dto.WorkedHours = "0";
-                        dto.Difference = 0;
-                        dto.PresentStatus = "Absent";
-                    }
-                    else
-                    {
-                        var timeIn = log.TimeInAt ?? log.TimeInMobile ?? log.TimeInImage;
-                        var timeOut = log.TimeOutAt ?? log.TimeOutMobile ?? log.TimeOutImage;
-                        dto.PresentStatus = "Present";
-                        TimeSpan? worked = (timeIn.HasValue && timeOut.HasValue)
-                            ? timeOut.Value - timeIn.Value
-                            : null;
-
-                        dto.TimeIn = timeIn;
-                        dto.TimeOut = timeOut;
-                        dto.WorkedHours = worked.HasValue
-                            ? $"{(int)worked.Value.TotalHours}h {worked.Value.Minutes}m"
-                            : "Incomplete";
-                        dto.Difference = worked.HasValue
-                            ? Math.Round(worked.Value.TotalHours - employee.ShiftType.ShiftHours, 2)
-                            : 0;
-                    }
-
-                    report.Add(dto);
                 }
+
 
                 return Json(report);
             }
@@ -120,7 +126,7 @@ namespace PPFAttendanceApi.Controllers
                 DateOnly fromDate = DateOnly.FromDateTime(f);
                 DateOnly toDate = DateOnly.FromDateTime(t);
                 var toDateExclusive = toDate.AddDays(1);
-                var totalDays = (To?.Date - From?.Date)?.Days + 1;
+                var totalDays = (t.Date - f.Date).Days + 1;
 
                 if (totalDays <= 0)
                     return BadRequest("'To' date must be on or after 'From' date.");
@@ -139,11 +145,11 @@ namespace PPFAttendanceApi.Controllers
 
                 var employees = await db.Employees.AsNoTracking()
                     .Include(x => x.ShiftType)
-                    .Include(x=>x.Role)
-                    .Include(x=> x.PaymentType)
+                    .Include(x => x.Role)
+                    .Include(x => x.PaymentType)
                     .Where(x => empIds.Contains(x.EmployeeId))
-                    .Include(emp=>emp.EmpUserBrDeptMappings.Where(b=>b.IsPrimaryBranch == true))
-                        .ThenInclude(x=>x.Department)
+                    .Include(emp => emp.EmpUserBrDeptMappings.Where(b => b.IsPrimaryBranch == true))
+                        .ThenInclude(x => x.Department)
                     .Include(emp => emp.EmpUserBrDeptMappings.Where(b => b.IsPrimaryBranch == true))
                         .ThenInclude(x => x.Branch)
                     .ToListAsync();
@@ -164,13 +170,13 @@ namespace PPFAttendanceApi.Controllers
 
                 var report = new List<EmployeeAttendanceSummaryDto>();
 
-          
+
                 foreach (var employee in employees)
                 {
-                   
+
                     var shiftHours = employee.ShiftType.ShiftHours;
 
-                    var employeeFromDate = employee.CreatedAt.Date > From?.Date
+                    var employeeFromDate = employee.CreatedAt.Date > f.Date
                         ? DateOnly.FromDateTime(employee.CreatedAt.Date)
                         : fromDate;
 
@@ -245,7 +251,7 @@ namespace PPFAttendanceApi.Controllers
                                 totalExcessHours += diff;
                         }
                     }
-                    
+
                     var totalScheduledHours = shiftHours * totalPresentDays;
 
                     report.Add(new EmployeeAttendanceSummaryDto
