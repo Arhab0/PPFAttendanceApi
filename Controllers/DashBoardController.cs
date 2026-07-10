@@ -153,9 +153,9 @@ namespace PPFAttendanceApi.Controllers
                             .Where(x => x.IsPrimaryBranch == true)
                             .Select(x => x.Department.DepartmentName)
                             .FirstOrDefault(),
-                        CheckInAt = date_in?.ToShortTimeString(),
+                        CheckInAt = date_in,
                         CheckInLocation = log.TimeInLocationName,
-                        CheckOutAt = date_out?.ToShortTimeString(),
+                        CheckOutAt = date_out,
                         CheckOutLocation = log.TimeOutLocationName,
                         log.Employee.ShiftType?.ShiftHours,
                         PresentedHours = workedHours,
