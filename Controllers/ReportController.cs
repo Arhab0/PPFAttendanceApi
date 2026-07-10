@@ -17,23 +17,36 @@ namespace PPFAttendanceApi.Controllers
 
         // Attendance Reports Required
         [HttpGet("DetailedAttendanceReport")]
-        public async Task<IActionResult> DetailedAttendanceReport(int employeeId = 0, DateTime? From = null, DateTime? To = null)
+        public async Task<IActionResult> DetailedAttendanceReport(List<int> employeeId, int branchId = 0, int departmentId = 0, DateTime? From = null, DateTime? To = null)
         {
             try
             {
                 var f = From ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
                 var t = To ?? f.AddMonths(1).AddDays(-1);
 
+                var e_ids = await db.EmpUserBrDeptMappings
+                        .Where(e =>
+                            (branchId == 0 || e.BranchId == branchId) &&
+                            (departmentId == 0 || e.DepartmentId == departmentId) &&
+                            e.EmployeeId != null
+                        )
+                        .Select(x => x.EmployeeId!.Value)
+                        .Distinct()
+                        .ToListAsync();
+
+                List<int> empids = employeeId.Count > 0 ? employeeId : e_ids;
+
                 var employees = await db.Employees
                     .AsNoTracking()
                     .Include(x => x.ShiftType)
                     .Include(x => x.Role)
                     .Include(x => x.PaymentType)
-                    .Where(x => employeeId == 0 || x.EmployeeId == employeeId)
+                    .Where(x => empids.Contains(x.EmployeeId))
+                    .OrderBy(x=>x.EmployeeId)
                     .ToListAsync();
 
                 if (employees.Count == 0)
-                    return NotFound($"Employee {employeeId} not found.");
+                    return NotFound($"No employees found.");
 
                 var report = new List<DetailedAttendanceReportDto>();
                 foreach (var employee in employees)
@@ -45,7 +58,7 @@ namespace PPFAttendanceApi.Controllers
                     var toDateExclusive = toDate.AddDays(1);
 
                     var logs = await db.AttendanceLogs.AsNoTracking()
-                        .Where(x => x.EmployeeId == employeeId &&
+                        .Where(x => x.EmployeeId == employee.EmployeeId &&
                         (x.AttendanceDate != null && x.AttendanceDate >= fromDate && x.AttendanceDate < toDateExclusive))
                         .ToListAsync();
 
