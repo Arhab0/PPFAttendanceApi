@@ -110,7 +110,6 @@ namespace PPFAttendanceApi.Controllers
 
         // Employee Attendance Summary
         [HttpGet("EmployeeAttendanceSummary")]
-        [AllowAnonymous]
         public async Task<IActionResult> EmployeeAttendanceSummary(int branchId = 0, int departmentId = 0, DateTime? From = null, DateTime? To = null)
         {
             try

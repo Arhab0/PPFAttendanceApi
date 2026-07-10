@@ -240,7 +240,6 @@ namespace PPFAttendanceApi.Controllers
             }
         }
 
-        [AllowAnonymous]
         [HttpGet("GetDepartmentByBranchId")]
         public async Task<IActionResult> GetDepartmentByBranchId(int branchId)
         {
