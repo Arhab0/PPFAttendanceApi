@@ -17,7 +17,7 @@ namespace PPFAttendanceApi.Controllers
 
         // Attendance Reports Required
         [HttpGet("DetailedAttendanceReport")]
-        public async Task<IActionResult> DetailedAttendanceReport(List<int> employeeId, int branchId = 0, int departmentId = 0, DateTime? From = null, DateTime? To = null)
+        public async Task<IActionResult> DetailedAttendanceReport(List<int> ids, int branchId = 0, int departmentId = 0, DateTime? From = null, DateTime? To = null)
         {
             try
             {
@@ -34,7 +34,7 @@ namespace PPFAttendanceApi.Controllers
                         .Distinct()
                         .ToListAsync();
 
-                List<int> empids = employeeId.Count > 0 ? employeeId : e_ids;
+                List<int> empids = ids.Count > 0 ? ids : e_ids;
 
                 var employees = await db.Employees
                     .AsNoTracking()
