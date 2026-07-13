@@ -183,12 +183,13 @@ namespace PPFAttendanceApi.Controllers
         //}
 
         [HttpGet("GetDashboardData")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetDashboardData(string filter = "today", DateTime? date = null)
         {
             try
             {
-                var roleId = int.Parse(claims["RoleId"]);
-                var sid = int.Parse(claims["sid"]);
+                //var roleId = int.Parse(claims["RoleId"]);
+                //var sid = int.Parse(claims["sid"]);
 
                 var today = DateTime.Now.Date;
                 var tomorrow = today.AddDays(1);
@@ -230,7 +231,7 @@ namespace PPFAttendanceApi.Controllers
 
                     var rangeLogsQuery = db.AttendanceLogs.AsNoTracking()
                     .Where(a => a.EmployeeId != null && a.Employee.IsActive == true
-                        && (a.Employee.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
+                        && (a.Employee.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId && m.IsPrimaryBranch == true))
                         && (
                             (a.TimeInAt != null && a.TimeInAt >= rangeStart && a.TimeInAt < rangeEnd) ||
                             (a.TimeInMobile != null && a.TimeInMobile >= rangeStart && a.TimeInMobile < rangeEnd) ||
@@ -239,7 +240,7 @@ namespace PPFAttendanceApi.Controllers
 
                     var employeeQuery = db.Employees.AsNoTracking()
                     .Where(e => e.IsActive == true
-                        && e.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId)
+                        && e.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId && m.IsPrimaryBranch == true)
                         );
 
                     b_.TotalStaffCount = await employeeQuery.CountAsync();
