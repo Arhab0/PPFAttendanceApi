@@ -118,23 +118,39 @@ namespace PPFAttendanceApi.Controllers
                     }
                 }
 
-                var g = report.GroupBy(x => x.EmployeeId).ToDictionary(g => g.Key, g => g.Select(s => new
-                {
-                    s.EmployeeId,
-                    s.EmployeeName,
-                    s.EmployeeCode,
-                    s.PhoneNumber,
-                    s.PaymentType,
-                    s.RoleName,
-                    s.IsActive,
-                    s.ScheduledWorkingHours,
-                    s.AttendanceDate,
-                    s.WorkedHours,
-                    s.Difference,
-                    s.PresentStatus,
-                    s.TimeIn,
-                    s.TimeOut
-                }).ToList());
+                var g = report
+                         .GroupBy(x => new
+                         {
+                             x.EmployeeId,
+                             x.EmployeeName,
+                             x.EmployeeCode
+                         })
+                         .Select(g => new
+                         {
+                             g.Key.EmployeeId,
+                             g.Key.EmployeeName,
+                             g.Key.EmployeeCode,
+
+                             Attendance = g.Select(s => new
+                             {
+                                 s.EmployeeId,
+                                 s.EmployeeName,
+                                 s.EmployeeCode,
+                                 s.PhoneNumber,
+                                 s.PaymentType,
+                                 s.RoleName,
+                                 s.IsActive,
+                                 s.ScheduledWorkingHours,
+                                 s.AttendanceDate,
+                                 s.WorkedHours,
+                                 s.Difference,
+                                 s.PresentStatus,
+                                 s.TimeIn,
+                                 s.TimeOut
+                             }).ToList()
+                         });
+
+                return Json(g);
 
 
                 return Json(g);
@@ -216,6 +232,7 @@ namespace PPFAttendanceApi.Controllers
                         // Employee was hired after the entire requested range — nothing to report.
                         report.Add(new EmployeeAttendanceSummaryDto
                         {
+                            EmployeeId = employee.EmployeeId,
                             EmployeeName = employee.EmployeeName,
                             EmployeeCode = employee.EmployeeCode,
                             PhoneNumber = employee.MobileNumber,
@@ -294,6 +311,7 @@ namespace PPFAttendanceApi.Controllers
 
                     report.Add(new EmployeeAttendanceSummaryDto
                     {
+                        EmployeeId = employee.EmployeeId,
                         EmployeeName = employee.EmployeeName,
                         EmployeeCode = employee.EmployeeCode,
                         PhoneNumber = employee.MobileNumber,
