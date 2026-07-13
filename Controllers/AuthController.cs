@@ -84,9 +84,8 @@ namespace PPFAttendanceApi.Controllers
 
                 if (e != null)
                 {
-                    if (e.RoleId != 5)
+                    if (e.RoleId == 4)
                     {
-
                         var deviceCheck = await db.DeviceSessions.Where(x => e.EmployeeId == x.EmployeeId).FirstOrDefaultAsync();
 
                         if (deviceCheck == null)
@@ -106,41 +105,64 @@ namespace PPFAttendanceApi.Controllers
                         {
                             return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Employee is already logged in from another device." });
                         }
-                    }
 
-                    obj.Id = e.EmployeeId;
-                    obj.Name = e.EmployeeName;
-                    obj.Email = e.EmployeeEmail;
-                    obj.RoleId = e.RoleId;
-                    obj.RoleName = e.Role.RoleName;
-                    //obj.mapping = e.EmpUserBrDeptMappings.Select(x => new BranchDeptMapping { MappingId = x.BrDeptMappingId, BranchId = x.BranchId, BranchName = x.Branch.BranchName, DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
+                        obj.Id = e.EmployeeId;
+                        obj.Name = e.EmployeeName;
+                        obj.Email = e.EmployeeEmail;
+                        obj.RoleId = e.RoleId;
+                        obj.RoleName = e.Role.RoleName;
 
-                    var eFile = e.EmployeeFiles?.FirstOrDefault();
-                    obj.File = eFile == null ? null : new()
-                    {
-                        FileId = eFile.EmployeeFileId,
-                        FilePath = $"/images/employee/{e.EmployeeCode}/{eFile.FilePath}",
-                        Extension = eFile.Extension,
-                        Sid = e.EmployeeId
-                    };
-
-                    obj.Locations_ = await db.Locations.Where(x => x.EmployeeId == e.EmployeeId).Select(x =>
-                        new UserLocationDto()
-                        {
-                            LocationId = x.LocationId,
-                            Latitude = x.Latitude,
-                            Longitude = x.Longitude,
-                            LocationType = x.LocationName,
-                            Radius = x.Radius,
-                        }).ToListAsync();
-
-                    if (e.RoleId == 5 || e.RoleId == 4)
-                    {
                         obj.Employees = db.Employees
                             .AsNoTracking()
                             .Include(x => x.Role)
                             .Include(x => x.Locations)
                             .Where(e => e.IsActive == true && e.RoleId == 3).Select(x => new RegisteredEmployeesData()
+                            {
+
+                                EmployeeId = x.EmployeeId,
+                                EmployeeName = x.EmployeeName,
+                                RoleName = x.Role.RoleName,
+                                EmployeeEmail = x.EmployeeEmail,
+                                EmployeeCode = x.EmployeeCode,
+                                MobileNumber = x.MobileNumber,
+                                File = x.EmployeeFiles
+                                .Select(f => new FileDto
+                                {
+                                    FileId = f.EmployeeFileId,
+                                    FilePath = $"/images/employee/{x.EmployeeCode}/{f.FilePath}",
+                                    Extension = f.Extension,
+                                    Sid = x.EmployeeId
+                                }).FirstOrDefault(),
+
+                                Locations_ = x.Locations.Select(l => new UserLocationDto()
+                                {
+                                    LocationId = l.LocationId,
+                                    Latitude = l.Latitude,
+                                    Longitude = l.Longitude,
+                                    LocationType = l.LocationName,
+                                    Radius = l.Radius
+                                }).ToList()
+                            }).ToList();
+
+                        return Json(new { obj, token = GenerateJwtToken(e.EmployeeId, e.RoleId) });
+                    }
+                }
+
+                else
+                {
+                    if (m.RoleId == 5)
+                    {
+                        obj.Id = m.UserId;
+                        obj.Name = m.UserName;
+                        obj.Email = m.UserEmail;
+                        obj.RoleId = m.RoleId;
+                        obj.RoleName = m.Role.RoleName;
+
+                        obj.Employees = db.Employees
+                            .AsNoTracking()
+                            .Include(x => x.Role)
+                            .Include(x => x.Locations)
+                            .Where(e => e.IsActive == true).Select(x => new RegisteredEmployeesData()
                             {
 
                                 EmployeeId = x.EmployeeId,
@@ -166,96 +188,13 @@ namespace PPFAttendanceApi.Controllers
                                     Radius = l.Radius
                                 }).ToList()
                             }).ToList();
-                    }
 
-                    return Json(new { obj, token = GenerateJwtToken(e.EmployeeId, e.RoleId) });
-                }
-
-                if (m.RoleId != 5)
-                {
-                    var deviceCheck_ = await db.DeviceSessions.Where(x => m.UserId == x.UserId).FirstOrDefaultAsync();
-
-                    if (deviceCheck_ == null)
-                    {
-                        await db.DeviceSessions.AddAsync(new()
-                        {
-                            DeviceId = dto.DeviceId,
-                            DeviceName = dto.DeviceName,
-                            DevicePlatform = dto.DevicePlatform,
-                            UserId = m.UserId,
-                            CreatedAt = DateTime.Now
-                        });
-
-                        await db.SaveChangesAsync();
-                    }
-                    else if (deviceCheck_.DeviceId != dto.DeviceId)
-                    {
-                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Manager is already logged in from another device." });
+                        return Json(new { obj, token = GenerateJwtToken(m.UserId, m.RoleId) });
                     }
                 }
 
-                obj.Id = m.UserId;
-                obj.Name = m.UserName;
-                obj.Email = m.UserEmail;
-                obj.RoleId = m.RoleId;
-                obj.RoleName = m.Role.RoleName;
-                //obj.mapping = m.EmpUserBrDeptMappings.Select(x => new BranchDeptMapping { MappingId = x.BrDeptMappingId, BranchId = x.BranchId, BranchName = x.Branch.BranchName, DepartmentId = x.DepartmentId, DepartmentName = x.Department.DepartmentName }).ToList();
-                //obj.DepartmentId = m.DepartmentId ?? 0;
-                //obj.DepartmentName = m.Department.DepartmentName;
+                return BadRequest(new { statusCode = 400, message = "Invalid user." });
 
-                var mFile = m.UserFiles?.FirstOrDefault();
-                obj.File = mFile == null ? null : new()
-                {
-                    FileId = mFile.UserFileId,
-                    FilePath = $"/images/staff/{m.UserId.ToString()}/{mFile.FilePath}",
-                    Extension = mFile.Extension,
-                    Sid = m.UserId
-                };
-
-                obj.Locations_ = await db.Locations.Where(x => x.UserId == m.UserId).Select(x => new UserLocationDto()
-                {
-                    LocationId = x.LocationId,
-                    Latitude = x.Latitude,
-                    Longitude = x.Longitude,
-                    LocationType = x.LocationName,
-                    Radius = x.Radius,
-                }).ToListAsync();
-
-                if (m.RoleId == 5 || m.RoleId == 4)
-                {
-                    obj.Employees = db.Employees
-                        .AsNoTracking()
-                        .Include(x => x.Role)
-                        .Include(x => x.Locations)
-                        .Where(e => e.IsActive == true).Select(x => new RegisteredEmployeesData()
-                        {
-
-                            EmployeeId = x.EmployeeId,
-                            EmployeeName = x.EmployeeName,
-                            EmployeeEmail = x.EmployeeEmail,
-                            EmployeeCode = x.EmployeeCode,
-                            MobileNumber = x.MobileNumber,
-                            File = x.EmployeeFiles
-                            .Select(f => new FileDto
-                            {
-                                FileId = f.EmployeeFileId,
-                                FilePath = $"/images/employee/{x.EmployeeCode}/{f.FilePath}",
-                                Extension = f.Extension,
-                                Sid = x.EmployeeId
-                            }).FirstOrDefault(),
-
-                            Locations_ = x.Locations.Select(l => new UserLocationDto()
-                            {
-                                LocationId = l.LocationId,
-                                Latitude = l.Latitude,
-                                Longitude = l.Longitude,
-                                LocationType = l.LocationName,
-                                Radius = l.Radius
-                            }).ToList()
-                        }).ToList();
-                }
-
-                return Json(new { obj, token = GenerateJwtToken(m.UserId, m.RoleId) });
             }
             catch (Exception ex)
             {
