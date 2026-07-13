@@ -79,7 +79,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var shiftType = await db.ShiftTypes.Where(x => x.ShiftTypeId == dto.ShiftId).FirstOrDefaultAsync();
+                var shiftType = await db.ShiftTypes.Where(x => x.ShiftTypeId == dto.ShiftTypeId).FirstOrDefaultAsync();
                 if (shiftType == null)
                 {
                     return NotFound(new { statusCode = 404, message = "Shift type not found." });

@@ -365,7 +365,7 @@ namespace PPFAttendanceApi.Controllers
             {
                 var allDescendantIds = await GetAllDescendantIds(departmentId);
                 var allAffectedIds = allDescendantIds.Append(departmentId).ToList();
-             
+
                 var check1 = await db.Departments
                     .Where(x => x.ParentDepartmentId == departmentId && x.IsActive == true)
                     .CountAsync();
@@ -381,7 +381,7 @@ namespace PPFAttendanceApi.Controllers
                 if (check2 > 0)
                     return BadRequest(new { message = "Cannot deactivate department with active users assigned" });
 
-             
+
                 await db.Departments
                     .Where(x => allAffectedIds.Contains(x.DepartmentId))
                     .ExecuteUpdateAsync(x => x.SetProperty(p => p.IsActive, false));
@@ -419,10 +419,55 @@ namespace PPFAttendanceApi.Controllers
                 .SqlQueryRaw<int>(sql, departmentId)
                 .ToListAsync();
         }
+
+        [HttpGet("GetDepartmentTree")]
+        public async Task<IActionResult> GetDepartmentTree()
+        {
+            try
+            {
+                var departments = await db.Departments
+                    .Where(x => x.IsActive == true)
+                    .Select(x => new DepartmentTreeDto
+                    {
+                        DepartmentId = x.DepartmentId,
+                        ParentDepartmentId = x.ParentDepartmentId,
+                        DepartmentName = x.DepartmentName,
+                    })
+                    .ToListAsync();
+
+                var lookup = departments.ToDictionary(d => d.DepartmentId);
+
+                foreach (var d in departments)
+                {
+                    if (d.ParentDepartmentId.HasValue && lookup.TryGetValue(d.ParentDepartmentId.Value, out var parent))
+                    {
+                        parent.SubDepartments.Add(d);
+                    }
+                }
+
+                var rootDepartments = departments
+                    .Where(d => d.ParentDepartmentId == null || !lookup.ContainsKey(d.ParentDepartmentId.Value))
+                    .ToList();
+
+                return Json(rootDepartments);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
+        }
     }
+
     public class DeptCount
     {
         public int DepartmentId { get; set; }
         public int TotalCount { get; set; }
+    }
+    public class DepartmentTreeDto
+    {
+        public int DepartmentId { get; set; }
+        public int? ParentDepartmentId { get; set; }
+        public string DepartmentName { get; set; }
+        public List<DepartmentTreeDto> SubDepartments { get; set; } = new();
     }
 }

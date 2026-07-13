@@ -26,14 +26,12 @@ namespace PPFAttendanceApi.Controllers
                     .Include(x => x.Role)
                     .Select(x => new
                     {
-                        id = x.UserId,
-                        name = x.UserName,
-                        email = x.UserEmail,
-                        roleId = x.RoleId,
-                        roleName = x.Role.RoleName,
-                        //latitude = x.Locations.Select(l => l.Latitude).FirstOrDefault(),
-                        //longitude = x.Locations.Select(l => l.Longitude).FirstOrDefault(),
-                        createdAt = x.CreatedAt,
+                        x.UserId,
+                        x.UserName,
+                        x.UserEmail,
+                        x.RoleId,
+                        RoleName = x.Role.RoleName,
+                        x.CreatedAt,
                     })
                     .ToListAsync();
 
@@ -52,7 +50,7 @@ namespace PPFAttendanceApi.Controllers
             {
                 var users = await db.Users
                     .Include(x => x.Role)
-                    .Where(x =>x.UserId == userId)
+                    .Where(x => x.UserId == userId)
                     .Select(x => new
                     {
                         sid = x.UserId,

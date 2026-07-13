@@ -17,7 +17,7 @@ namespace PPFAttendanceApi.Controllers
         private readonly IConfiguration configuration = _configuration;
         private readonly ClaimsService claims = _claims;
 
-        [HttpGet("Login")]
+        [HttpPost("Login")]
         public async Task<IActionResult> Login(LoginRequestDto dto)
         {
             try

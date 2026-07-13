@@ -34,12 +34,12 @@ namespace PPFAttendanceApi.Controllers
             await db.Database.BeginTransactionAsync();
             try
             {
-                
+
                 var check = await db.Roles.Where(x => x.RoleName.Trim().ToLower() == roleName.Trim().ToLower()).AnyAsync();
 
                 if (check)
                 {
-                    return BadRequest(new {statusCode = 400, message = "Role already exists." });
+                    return BadRequest(new { statusCode = 400, message = "Role already exists." });
                 }
 
                 await db.Roles.AddAsync(new()
@@ -50,7 +50,7 @@ namespace PPFAttendanceApi.Controllers
 
                 await db.SaveChangesAsync();
                 await db.Database.CommitTransactionAsync();
-                return Ok(new { message = "Role added successfully." });
+                return Ok(new { statusCode = 200, message = "Role added successfully." });
             }
             catch (Exception e)
             {
@@ -64,7 +64,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var role = await db.Roles.Where(x => x.RoleId == roleId).Select(x => new { x.RoleId, x.RoleName,x.CreatedAt }).FirstOrDefaultAsync();
+                var role = await db.Roles.Where(x => x.RoleId == roleId).Select(x => new { x.RoleId, x.RoleName, x.CreatedAt }).FirstOrDefaultAsync();
                 if (role == null)
                 {
                     return NotFound(new { statusCode = 404, message = "Role not found." });
@@ -96,7 +96,7 @@ namespace PPFAttendanceApi.Controllers
 
                 await db.SaveChangesAsync();
                 await db.Database.CommitTransactionAsync();
-                return Ok(new { message = "Role added successfully." });
+                return Ok(new { statusCode = 200, message = "Role updated successfully." });
             }
             catch (Exception e)
             {
