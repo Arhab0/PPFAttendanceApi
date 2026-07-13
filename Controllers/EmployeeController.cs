@@ -165,7 +165,7 @@ namespace PPFAttendanceApi.Controllers
             await db.Database.BeginTransactionAsync();
             try
             {
-                
+
                 if (dto.BrDeptMapping.Count(x => x.IsPrimaryBranch) > 1)
                 {
                     return BadRequest(new { statusCode = 400, message = "Primary branch can only be one." });
@@ -264,7 +264,7 @@ namespace PPFAttendanceApi.Controllers
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
                             .Include(x => x.EmployeeFiles)
-                            .Include(x=>x.Role)
+                            .Include(x => x.Role)
                             .Select(x => new
                             {
                                 x.EmployeeId,
@@ -315,33 +315,33 @@ namespace PPFAttendanceApi.Controllers
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
                             .Include(x => x.EmployeeFiles)
-                            .Include(x=>x.Role)
+                            .Include(x => x.Role)
                             .Select(x => new
                             {
-                                x.EmployeeId,
-                                x.EmployeeName,
-                                x.EmployeeFatherName,
-                                x.Cnic,
-                                x.MobileNumber,
-                                x.JobTitle,
-                                x.EmployeeEmail,
-                                x.EmployeeCode,
-                                x.IsActive,
-                                x.EmployeeTypeId,
-                                EmployeeType = x.EmployeeType.Type,
-                                x.ShiftTypeId,
-                                ShiftType = x.ShiftType.Type,
-                                x.PaymentTypeId,
-                                PaymentType = x.PaymentType.Type,
-                                x.RoleId,
-                                x.Role.RoleName,
-                                MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
-                                DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
-                                OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
-                                mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName, x.IsPrimaryBranch }).ToList(),
-                                IsFaceRegistered = x.EmployeeFiles.Any()
+                                value = x.EmployeeId,
+                                label = x.EmployeeName + " ( " + x.EmployeeCode + " )",
+                                //x.EmployeeFatherName,
+                                //x.Cnic,
+                                //x.MobileNumber,
+                                //x.JobTitle,
+                                //x.EmployeeEmail,
+                                //x.EmployeeCode,
+                                //x.IsActive,
+                                //x.EmployeeTypeId,
+                                //EmployeeType = x.EmployeeType.Type,
+                                //x.ShiftTypeId,
+                                //ShiftType = x.ShiftType.Type,
+                                //x.PaymentTypeId,
+                                //PaymentType = x.PaymentType.Type,
+                                //x.RoleId,
+                                //x.Role.RoleName,
+                                //MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
+                                //DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
+                                //OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
+                                //mapping = x.EmpUserBrDeptMappings.Select(x => new { x.BrDeptMappingId, x.BranchId, x.Branch.BranchName, x.DepartmentId, x.Department.DepartmentName, x.IsPrimaryBranch }).ToList(),
+                                //IsFaceRegistered = x.EmployeeFiles.Any()
                             })
-                            .OrderBy(x => x.EmployeeId)
+                            .OrderBy(x => x.value)
                             .ToListAsync();
 
                 return Json(data);
@@ -366,7 +366,7 @@ namespace PPFAttendanceApi.Controllers
                             .Include(x => x.EmployeeType)
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
-                            .Include(x=>x.Role)
+                            .Include(x => x.Role)
                             .Select(x => new
                             {
                                 x.EmployeeId,

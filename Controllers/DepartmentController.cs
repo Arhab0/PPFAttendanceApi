@@ -432,6 +432,7 @@ namespace PPFAttendanceApi.Controllers
                         DepartmentId = x.DepartmentId,
                         ParentDepartmentId = x.ParentDepartmentId,
                         DepartmentName = x.DepartmentName,
+                        BranchId = x.BranchId
                     })
                     .ToListAsync();
 
@@ -468,6 +469,7 @@ namespace PPFAttendanceApi.Controllers
         public int DepartmentId { get; set; }
         public int? ParentDepartmentId { get; set; }
         public string DepartmentName { get; set; }
+        public int? BranchId { get; set; }
         public List<DepartmentTreeDto> SubDepartments { get; set; } = new();
     }
 }
