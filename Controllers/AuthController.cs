@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using PPFAttendanceApi.Dto;
 using PPFAttendanceApi.Helper;
 using PPFAttendanceApi.Models;
+using System.ComponentModel;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -195,6 +196,26 @@ namespace PPFAttendanceApi.Controllers
 
                 return BadRequest(new { statusCode = 400, message = "Invalid user." });
 
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("CheckLogout")]
+        public async Task<IActionResult> CheckLogout(string email, string password)
+        {
+            try
+            {
+                var check = await db.Users.Where(x=>x.UserEmail == email && x.UserPassword == Security.Encrypt(password)).FirstOrDefaultAsync();
+
+                if (check == null)
+                {
+                    return NotFound(new { statusCode = 404, message = "Invalid email or password." });
+                }
+
+                return Json(true);
             }
             catch (Exception ex)
             {
