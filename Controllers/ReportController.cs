@@ -211,7 +211,8 @@ namespace PPFAttendanceApi.Controllers
                             TotalShortHours = 0,
                             TotalExcessHours = 0,
                             TotalPresentDays = 0,
-                            TotalAbsentDays = 0
+                            TotalAbsentDays = 0,
+                            TotalMissingEntries = 0,
                         });
                         continue;
                     }
@@ -221,6 +222,7 @@ namespace PPFAttendanceApi.Controllers
                     double totalExcessHours = 0;
                     int totalPresentDays = 0;
                     int totalAbsentDays = 0;
+                    int totalMissingEntries = 0;
                     int minusDays = 0;
 
                     logsByEmployee.TryGetValue(employee.EmployeeId, out var employeeLogsByDate);
@@ -263,6 +265,11 @@ namespace PPFAttendanceApi.Controllers
                             else
                                 totalExcessHours += diff;
                         }
+                        else if (!timeOut.HasValue)
+                        {
+                            totalMissingEntries++;
+                        }
+
                     }
 
                     var totalScheduledHours = shiftHours * totalPresentDays;
@@ -282,7 +289,8 @@ namespace PPFAttendanceApi.Controllers
                         TotalShortHours = Math.Round(totalShortHours, 2),
                         TotalExcessHours = Math.Round(totalExcessHours, 2),
                         TotalPresentDays = totalPresentDays,
-                        TotalAbsentDays = totalAbsentDays
+                        TotalAbsentDays = totalAbsentDays,
+                        TotalMissingEntries = totalMissingEntries,
                     });
                 }
                 return Json(report);

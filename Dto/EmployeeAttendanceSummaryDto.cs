@@ -16,5 +16,6 @@
         public double TotalExcessHours { get; set; }
         public int TotalPresentDays { get; set; }
         public int TotalAbsentDays { get; set; }
+        public int TotalMissingEntries { get; set; }
     }
 }
