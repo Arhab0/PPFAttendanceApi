@@ -19,7 +19,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var roles = await db.Roles.Select(x => new { x.RoleId, x.RoleName, x.CreatedAt }).ToListAsync();
+                var roles = await db.Roles.Select(x => new { x.RoleId, x.RoleName, x.CreatedAt,x.HasLoginAccess }).ToListAsync();
                 return Json(roles);
             }
             catch (Exception e)
@@ -29,7 +29,7 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpPost("AddRole")]
-        public async Task<IActionResult> AddRole(string roleName)
+        public async Task<IActionResult> AddRole(string roleName,bool hasLoginAccess)
         {
             await db.Database.BeginTransactionAsync();
             try
@@ -45,6 +45,7 @@ namespace PPFAttendanceApi.Controllers
                 await db.Roles.AddAsync(new()
                 {
                     RoleName = roleName,
+                    HasLoginAccess = hasLoginAccess,
                     CreatedAt = DateTime.Now
                 });
 
@@ -64,7 +65,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var role = await db.Roles.Where(x => x.RoleId == roleId).Select(x => new { x.RoleId, x.RoleName, x.CreatedAt }).FirstOrDefaultAsync();
+                var role = await db.Roles.Where(x => x.RoleId == roleId).Select(x => new { x.RoleId, x.RoleName, x.CreatedAt,x.HasLoginAccess }).FirstOrDefaultAsync();
                 if (role == null)
                 {
                     return NotFound(new { statusCode = 404, message = "Role not found." });
@@ -78,7 +79,7 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpPost("UpdateRole")]
-        public async Task<IActionResult> UpdateRole(int roleId, string roleName)
+        public async Task<IActionResult> UpdateRole(int roleId, string roleName, bool HasLoginAccess)
         {
             await db.Database.BeginTransactionAsync();
             try
@@ -93,6 +94,7 @@ namespace PPFAttendanceApi.Controllers
 
                 var r = await db.Roles.Where(x => x.RoleId == roleId).FirstOrDefaultAsync();
                 r.RoleName = roleName;
+                r.HasLoginAccess = HasLoginAccess;
 
                 await db.SaveChangesAsync();
                 await db.Database.CommitTransactionAsync();

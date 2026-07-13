@@ -20,7 +20,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var roles = await db.Roles.Select(x => new { value = x.RoleId, label = x.RoleName}).ToListAsync();
+                var roles = await db.Roles.Select(x => new { value = x.RoleId, label = x.RoleName,x.HasLoginAccess}).ToListAsync();
                 return Json(roles);
             }
             catch (Exception e)

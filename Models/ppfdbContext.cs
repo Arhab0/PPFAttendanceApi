@@ -529,6 +529,9 @@ public partial class ppfdbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
+            entity.Property(e => e.HasLoginAccess)
+                .HasDefaultValue(true)
+                .HasColumnName("has_login_access");
             entity.Property(e => e.RoleName)
                 .IsRequired()
                 .HasColumnType("character varying")
