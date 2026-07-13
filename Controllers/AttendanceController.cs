@@ -319,7 +319,7 @@ namespace PPFAttendanceApi.Controllers
                 {
                     var date_check = dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage;
 
-                    var attendanceCheck = await db.AttendanceLogs.Where(x => (x.EmployeeId == dto.sid || x.UserId == dto.sid) && date_check == (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date).FirstOrDefaultAsync();
+                    var attendanceCheck = await db.AttendanceLogs.Where(x => (x.EmployeeId == dto.sid || x.UserId == dto.sid) && date_check!.Value.Date == (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date).FirstOrDefaultAsync();
                     if (attendanceCheck != null)
                     {
                         return BadRequest(new { statusCode = 400, message = "Attendance already marked for today." });
