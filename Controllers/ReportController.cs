@@ -99,7 +99,7 @@ namespace PPFAttendanceApi.Controllers
                         {
                             var timeIn = log.TimeInAt ?? log.TimeInMobile ?? log.TimeInImage;
                             var timeOut = log.TimeOutAt ?? log.TimeOutMobile ?? log.TimeOutImage;
-                            dto.PresentStatus = "Present";
+                            dto.PresentStatus = timeIn.HasValue && timeIn.HasValue ? "Present" : "Time-Out Missing";
                             TimeSpan? worked = (timeIn.HasValue && timeOut.HasValue)
                                 ? timeOut.Value - timeIn.Value
                                 : null;
@@ -118,8 +118,26 @@ namespace PPFAttendanceApi.Controllers
                     }
                 }
 
+                var g = report.GroupBy(x => x.EmployeeId).ToDictionary(g => g.Key, g => g.Select(s => new
+                {
+                    s.EmployeeId,
+                    s.EmployeeName,
+                    s.EmployeeCode,
+                    s.PhoneNumber,
+                    s.PaymentType,
+                    s.RoleName,
+                    s.IsActive,
+                    s.ScheduledWorkingHours,
+                    s.AttendanceDate,
+                    s.WorkedHours,
+                    s.Difference,
+                    s.PresentStatus,
+                    s.TimeIn,
+                    s.TimeOut
+                }).ToList());
 
-                return Json(report);
+
+                return Json(g);
             }
             catch (Exception e)
             {
