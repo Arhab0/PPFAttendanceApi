@@ -217,7 +217,7 @@ namespace PPFAttendanceApi.Controllers
                     {
                         EmployeeId = employee.EmployeeId,
                         BranchId = item.BranchId,
-                        DepartmentId = item.DepartmentId,
+                        DepartmentId = item.DepartmentId == 0 ? null : item.DepartmentId,
                         IsPrimaryBranch = item.IsPrimaryBranch,
                     };
                     employeeBrDeptMappings.Add(mapping);
