@@ -72,7 +72,7 @@ namespace PPFAttendanceApi.Controllers
                         return Json(new { obj, token = GenerateJwtToken(data_1.UserId, data_1.RoleId) });
                     }
 
-                    if (data_2.RoleId == 3 || data_2.RoleId == 4)
+                    if (data_2.RoleId != supervisorId)
                     {
                         return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
                     }
