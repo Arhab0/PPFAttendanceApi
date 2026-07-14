@@ -316,10 +316,13 @@ namespace PPFAttendanceApi.Controllers
                     empFlag = true;
                 }
 
+                var check_ = (dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage)!.Value.Date;
                 var openSession = await db.AttendanceLogs
                     .Where(x =>
                         (empFlag ? x.EmployeeId == dto.sid : x.UserId == dto.sid) &&
-                        x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null)
+                            x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null
+                            && (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date != check_
+                        )
                     .OrderByDescending(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
                     .FirstOrDefaultAsync();
 

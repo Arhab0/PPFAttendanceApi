@@ -12,12 +12,12 @@ using System.Text;
 namespace PPFAttendanceApi.Controllers
 {
     [Route("api/[controller]")]
-    public class AuthController(ppfdbContext _context, IConfiguration _configuration, ClaimsService _claims) : Controller
+    public class AuthController(ppfdbContext _context, IConfiguration _configuration, ClaimsService _claims, IWebHostEnvironment _env) : Controller
     {
         private readonly ppfdbContext db = _context;
         private readonly IConfiguration configuration = _configuration;
         private readonly ClaimsService claims = _claims;
-
+        private readonly IWebHostEnvironment env = _env;
         [HttpPost("Login")]
         public async Task<IActionResult> Login(LoginRequestDto dto)
         {
@@ -42,9 +42,15 @@ namespace PPFAttendanceApi.Controllers
                         return NotFound(new { statusCode = 404, message = "User not found. Invalid email or password" });
                     }
 
-
+                    int supervisorId = env.IsDevelopment() ? 8 : 6;
+                    
                     if (data_1 != null)
                     {
+                        if (data_1.RoleId != 1)
+                        {
+                            return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
+                        }
+
                         obj.Id = data_1.UserId;
                         obj.Name = data_1.UserName;
                         obj.Email = data_1.UserEmail;
@@ -66,9 +72,9 @@ namespace PPFAttendanceApi.Controllers
                         return Json(new { obj, token = GenerateJwtToken(data_1.UserId, data_1.RoleId) });
                     }
 
-                    if (data_2.RoleId == 3)
+                    if (data_2.RoleId == 3 || data_2.RoleId == 4)
                     {
-                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Employees cannot log in from the portal." });
+                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
                     }
                     obj.Id = data_2.EmployeeId;
                     obj.Name = data_2.EmployeeName;
@@ -111,6 +117,10 @@ namespace PPFAttendanceApi.Controllers
 
                 if (e != null)
                 {
+                    if (e.RoleId != 4)
+                    {
+                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
+                    }
                     if (e.RoleId == 4)
                     {
                         var deviceCheck = await db.DeviceSessions.Where(x => e.EmployeeId == x.EmployeeId).FirstOrDefaultAsync();
@@ -177,9 +187,9 @@ namespace PPFAttendanceApi.Controllers
 
                 else
                 {
-                    if (m.RoleId == 1)
+                    if (m.RoleId != 5)
                     {
-                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access. super admin cannot log in from the mobile device." });
+                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
                     }
 
                     if (m.RoleId == 5)
