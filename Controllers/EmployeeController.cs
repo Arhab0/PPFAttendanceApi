@@ -190,7 +190,7 @@ namespace PPFAttendanceApi.Controllers
                 employee.EmployeeTypeId = dto.EmployeeTypeId;
                 employee.UpdatedAt = DateTime.Now;
 
-                if (!string.IsNullOrEmpty(dto.Password) && !string.IsNullOrEmpty(dto.Email))
+                if (!string.IsNullOrEmpty(dto.Email))
                 {
                     var check = await db.Employees.Where(x => x.EmployeeId != dto.sid && x.EmployeeEmail == dto.Email).FirstOrDefaultAsync();
 
@@ -198,9 +198,13 @@ namespace PPFAttendanceApi.Controllers
                     {
                         return BadRequest(new { statusCode = 400, message = "Employee with this Email already exists." });
                     }
+                    employee.EmployeeEmail = dto.Email;
+                }
+
+                if (!string.IsNullOrEmpty(dto.Password))
+                {
                     var password = Security.Encrypt(dto.Password);
                     employee.EmployeePassword = password;
-                    employee.EmployeeEmail = dto.Email;
                 }
 
                 await db.EmpUserBrDeptMappings.Where(x => x.EmployeeId == dto.sid).ExecuteDeleteAsync();

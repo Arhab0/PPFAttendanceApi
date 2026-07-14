@@ -123,25 +123,25 @@ namespace PPFAttendanceApi.Controllers
                     }
                     if (e.RoleId == 4)
                     {
-                        var deviceCheck = await db.DeviceSessions.Where(x => e.EmployeeId == x.EmployeeId).FirstOrDefaultAsync();
+                        //var deviceCheck = await db.DeviceSessions.Where(x => e.EmployeeId == x.EmployeeId).FirstOrDefaultAsync();
 
-                        if (deviceCheck == null)
-                        {
-                            await db.DeviceSessions.AddAsync(new()
-                            {
-                                DeviceId = dto.DeviceId,
-                                DeviceName = dto.DeviceName,
-                                DevicePlatform = dto.DevicePlatform,
-                                EmployeeId = e.EmployeeId,
-                                CreatedAt = DateTime.Now
-                            });
+                        //if (deviceCheck == null)
+                        //{
+                        //    await db.DeviceSessions.AddAsync(new()
+                        //    {
+                        //        DeviceId = dto.DeviceId,
+                        //        DeviceName = dto.DeviceName,
+                        //        DevicePlatform = dto.DevicePlatform,
+                        //        EmployeeId = e.EmployeeId,
+                        //        CreatedAt = DateTime.Now
+                        //    });
 
-                            await db.SaveChangesAsync();
-                        }
-                        else if (deviceCheck.DeviceId != dto.DeviceId)
-                        {
-                            return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Employee is already logged in from another device." });
-                        }
+                        //    await db.SaveChangesAsync();
+                        //}
+                        //else if (deviceCheck.DeviceId != dto.DeviceId)
+                        //{
+                        //    return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Employee is already logged in from another device." });
+                        //}
 
                         obj.Id = e.EmployeeId;
                         obj.Name = e.EmployeeName;
