@@ -29,40 +29,66 @@ namespace PPFAttendanceApi.Controllers
 
                 if (dto.IsFromPortal)
                 {
-                    var data = await db.Users.Include(x => x.Role).Include(x => x.UserFiles)
+                    var data_1 = await db.Users.Include(x => x.Role).Include(x => x.UserFiles)
                         .Where(x => x.UserEmail.ToLower() == dto.Email.ToLower() && x.UserPassword == encrypt &&
                                     x.IsActive == true).FirstOrDefaultAsync();
 
+                    var data_2 = await db.Employees.Include(x => x.Role).Include(x => x.EmployeeFiles)
+                        .Where(x => x.EmployeeEmail.ToLower() == dto.Email.ToLower() && x.EmployeePassword == encrypt &&
+                                    x.IsActive == true).FirstOrDefaultAsync();
 
-                    if (data == null)
+                    if (data_1 == null && data_2 == null)
                     {
                         return NotFound(new { statusCode = 404, message = "User not found. Invalid email or password" });
                     }
 
-                    if (data.RoleId == 3)
+
+                    if (data_1 != null)
+                    {
+                        obj.Id = data_1.UserId;
+                        obj.Name = data_1.UserName;
+                        obj.Email = data_1.UserEmail;
+                        obj.RoleId = data_1.RoleId;
+                        obj.RoleName = data_1.Role.RoleName;
+
+                        var uFile_1 = data_1.UserFiles?.FirstOrDefault();
+                        if (data_1.RoleId == 2)
+                        {
+                            obj.File = uFile_1 == null ? null : new()
+                            {
+                                FileId = uFile_1.UserFileId,
+                                FilePath = $"/images/staff/{data_1.UserId.ToString()}/{uFile_1.FilePath}",
+                                Extension = uFile_1.Extension,
+                                Sid = data_1.UserId
+                            };
+                        }
+
+                        return Json(new { obj, token = GenerateJwtToken(data_1.UserId, data_1.RoleId) });
+                    }
+
+                    if (data_2.RoleId == 3)
                     {
                         return Unauthorized(new { statusCode = 401, message = "Unauthorized access. Employees cannot log in from the portal." });
                     }
+                    obj.Id = data_2.EmployeeId;
+                    obj.Name = data_2.EmployeeName;
+                    obj.Email = data_2.EmployeeEmail;
+                    obj.RoleId = data_2.RoleId;
+                    obj.RoleName = data_2.Role.RoleName;
 
-                    obj.Id = data.UserId;
-                    obj.Name = data.UserName;
-                    obj.Email = data.UserEmail;
-                    obj.RoleId = data.RoleId;
-                    obj.RoleName = data.Role.RoleName;
-
-                    var uFile = data.UserFiles?.FirstOrDefault();
-                    if (data.RoleId == 2)
+                    var uFile = data_2.EmployeeFiles?.FirstOrDefault();
+                    if (data_2.RoleId == 2)
                     {
                         obj.File = uFile == null ? null : new()
                         {
-                            FileId = uFile.UserFileId,
-                            FilePath = $"/images/staff/{data.UserId.ToString()}/{uFile.FilePath}",
+                            FileId = uFile.EmployeeFileId,
+                            FilePath = $"/images/employee/{data_2.EmployeeCode}/{uFile.FilePath}",
                             Extension = uFile.Extension,
-                            Sid = data.UserId
+                            Sid = data_2.EmployeeId
                         };
                     }
 
-                    return Json(new { obj, token = GenerateJwtToken(data.UserId, data.RoleId) });
+                    return Json(new { obj, token = GenerateJwtToken(data_2.EmployeeId, data_2.RoleId) });
                 }
 
                 var e = await db.Employees
