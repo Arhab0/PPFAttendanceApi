@@ -179,7 +179,7 @@ namespace PPFAttendanceApi.Controllers
                 {
                     if (m.RoleId == 1)
                     {
-                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access. super admin cannot log in from the portal." });
+                        return Unauthorized(new { statusCode = 401, message = "Unauthorized access. super admin cannot log in from the mobile device." });
                     }
 
                     if (m.RoleId == 5)
