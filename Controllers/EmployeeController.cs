@@ -255,7 +255,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var empIds = await db.EmpUserBrDeptMappings.AsNoTracking().Where(b=> branchId == 0 || b.BranchId == branchId).Select(x => x.EmployeeId).Distinct().ToListAsync();
+                var empIds = await db.EmpUserBrDeptMappings.AsNoTracking().Where(b=> branchId == 0 || b.BranchId == branchId).OrderBy(x=>x.BranchId).Select(x => x.EmployeeId).Distinct().ToListAsync();
                 var data = await db.Employees.AsNoTracking()
                             .Where(e => empIds.Contains(e.EmployeeId))
                             .Include(x => x.EmpUserBrDeptMappings)
