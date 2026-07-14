@@ -183,13 +183,12 @@ namespace PPFAttendanceApi.Controllers
         //}
 
         [HttpGet("GetDashboardData")]
-        [AllowAnonymous]
         public async Task<IActionResult> GetDashboardData(string filter = "today", DateTime? date = null)
         {
             try
             {
-                //var roleId = int.Parse(claims["RoleId"]);
-                //var sid = int.Parse(claims["sid"]);
+                var roleId = int.Parse(claims["RoleId"]);
+                var sid = int.Parse(claims["sid"]);
 
                 var today = DateTime.Now.Date;
                 var tomorrow = today.AddDays(1);
