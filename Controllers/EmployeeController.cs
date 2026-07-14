@@ -251,11 +251,11 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpGet("GetAllEmployeesList")]
-        public async Task<IActionResult> GetAllEmployeesList()
+        public async Task<IActionResult> GetAllEmployeesList(int branchId = 0)
         {
             try
             {
-                var empIds = await db.EmpUserBrDeptMappings.AsNoTracking().Select(x => x.EmployeeId).Distinct().ToListAsync();
+                var empIds = await db.EmpUserBrDeptMappings.AsNoTracking().Where(b=> branchId == 0 || b.BranchId == branchId).Select(x => x.EmployeeId).Distinct().ToListAsync();
                 var data = await db.Employees.AsNoTracking()
                             .Where(e => empIds.Contains(e.EmployeeId))
                             .Include(x => x.EmpUserBrDeptMappings)

@@ -94,11 +94,15 @@ namespace PPFAttendanceApi.Controllers
                             dto.WorkedHours = "0";
                             dto.Difference = 0;
                             dto.PresentStatus = "Absent";
+                            dto.TimeInBy = "";
+                            dto.TimeOutBy = "";
                         }
                         else
                         {
                             var timeIn = log.TimeInAt ?? log.TimeInMobile ?? log.TimeInImage;
                             var timeOut = log.TimeOutAt ?? log.TimeOutMobile ?? log.TimeOutImage;
+                            dto.TimeInBy = log.TimeInBy;
+                            dto.TimeOutBy = log.TimeOutBy;
                             dto.PresentStatus = timeIn.HasValue && timeIn.HasValue ? "Present" : "Time-Out Missing";
                             TimeSpan? worked = (timeIn.HasValue && timeOut.HasValue)
                                 ? timeOut.Value - timeIn.Value
@@ -146,7 +150,9 @@ namespace PPFAttendanceApi.Controllers
                                  s.Difference,
                                  s.PresentStatus,
                                  s.TimeIn,
-                                 s.TimeOut
+                                 s.TimeOut,
+                                 s.TimeInBy,
+                                 s.TimeOutBy
                              }).ToList()
                          });
 

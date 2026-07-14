@@ -12,6 +12,8 @@
         public DateOnly AttendanceDate { get; set; } = new DateOnly();
         public DateTime? TimeIn { get; set; }
         public DateTime? TimeOut { get; set; }
+        public string TimeInBy { get; set; }
+        public string TimeOutBy { get; set; }
         public string PresentStatus { get; set; }
         public int ScheduledWorkingHours { get; set; }
         public string WorkedHours { get; set; }
