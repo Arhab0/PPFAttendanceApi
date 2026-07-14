@@ -90,7 +90,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var departments = await db.Departments
+                var departments = await db.Departments.AsNoTracking()
                     .Where(d => d.IsActive == true && d.EmpUserBrDeptMappings.Any(m => m.BranchId == branchId))
                     .Select(d => new { d.DepartmentId, d.DepartmentName })
                     .Distinct()
