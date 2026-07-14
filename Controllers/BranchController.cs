@@ -97,7 +97,7 @@ namespace PPFAttendanceApi.Controllers
                     x.Longitude,
                     x.IsActive,
                     x.Radius,
-                    TotalCount = x.EmpUserBrDeptMappings.Count(m => (m.EmployeeId != null && m.Employee.IsActive == true) || (m.UserId != null && m.User.IsActive == true) && m.IsPrimaryBranch == true)
+                    TotalCount = x.EmpUserBrDeptMappings.Count(m => (m.EmployeeId != null && m.Employee.IsActive == true && m.IsPrimaryBranch == true) || (m.UserId != null && m.User.IsActive == true && m.IsPrimaryBranch == true))
                 }).ToListAsync();
                 return Ok(new { statusCode = 200, branches });
             }
