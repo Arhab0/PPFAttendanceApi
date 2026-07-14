@@ -50,7 +50,7 @@ builder.Services.AddCors(options =>
             .WithOrigins(
                 "http://localhost:3000",
                 "https://localhost:3000",
-                "https://staging-cams.times-labs.com","" +
+                "https://staging-cams.times-labs.com",
                 "https://ppf-cams.times-labs.com"
             )
             .AllowAnyHeader()
