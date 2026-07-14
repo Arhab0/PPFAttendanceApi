@@ -204,6 +204,7 @@ namespace PPFAttendanceApi.Controllers
                 }
 
                 await db.EmpUserBrDeptMappings.Where(x => x.EmployeeId == dto.sid).ExecuteDeleteAsync();
+                await db.Locations.Where(x => x.EmployeeId == dto.sid).ExecuteDeleteAsync();
 
                 List<Location> locations = new();
                 List<EmpUserBrDeptMapping> employeeBrDeptMappings = new();
