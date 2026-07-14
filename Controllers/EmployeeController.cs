@@ -320,7 +320,7 @@ namespace PPFAttendanceApi.Controllers
                             {
 
                                 value = x.EmployeeId,
-                                label = x.EmployeeName,
+                                label = x.EmployeeName + " - " +x.EmployeeCode,
                                 //x.EmployeeFatherName,
                                 //x.Cnic,
                                 //x.MobileNumber,
