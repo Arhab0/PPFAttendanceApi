@@ -256,7 +256,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var empIds = await db.EmpUserBrDeptMappings.AsNoTracking().Where(b=> branchId == 0 || b.BranchId == branchId).OrderBy(x=>x.BranchId).Select(x => x.EmployeeId).Distinct().ToListAsync();
+                var empIds = await db.EmpUserBrDeptMappings.AsNoTracking().Where(b => branchId == 0 || b.BranchId == branchId).OrderBy(x => x.BranchId).Select(x => x.EmployeeId).Distinct().ToListAsync();
                 var data = await db.Employees.AsNoTracking()
                             .Where(e => empIds.Contains(e.EmployeeId))
                             .Include(x => x.EmpUserBrDeptMappings)
@@ -318,27 +318,28 @@ namespace PPFAttendanceApi.Controllers
                             .Include(x => x.Role)
                             .Select(x => new
                             {
-                                x.EmployeeId,
-                                x.EmployeeName,
-                                x.EmployeeFatherName,
-                                x.Cnic,
-                                x.MobileNumber,
-                                x.JobTitle,
-                                x.EmployeeEmail,
-                                x.EmployeeCode,
-                                x.IsActive,
-                                x.EmployeeTypeId,
-                                EmployeeType = x.EmployeeType.Type,
-                                x.ShiftTypeId,
-                                ShiftType = x.ShiftType.Type,
-                                x.PaymentTypeId,
-                                PaymentType = x.PaymentType.Type,
-                                x.RoleId,
-                                x.Role.RoleName,
-                                MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
-                                DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
-                                OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
-                                IsFaceRegistered = x.EmployeeFiles.Any()
+
+                                value = x.EmployeeId,
+                                label = x.EmployeeName,
+                                //x.EmployeeFatherName,
+                                //x.Cnic,
+                                //x.MobileNumber,
+                                //x.JobTitle,
+                                //x.EmployeeEmail,
+                                //x.EmployeeCode,
+                                //x.IsActive,
+                                //x.EmployeeTypeId,
+                                //EmployeeType = x.EmployeeType.Type,
+                                //x.ShiftTypeId,
+                                //ShiftType = x.ShiftType.Type,
+                                //x.PaymentTypeId,
+                                //PaymentType = x.PaymentType.Type,
+                                //x.RoleId,
+                                //x.Role.RoleName,
+                                //MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
+                                //DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
+                                //OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
+                                //IsFaceRegistered = x.EmployeeFiles.Any()
                             })
                             .OrderBy(x => x.value)
                             .ToListAsync();
