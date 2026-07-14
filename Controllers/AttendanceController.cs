@@ -316,13 +316,25 @@ namespace PPFAttendanceApi.Controllers
                     empFlag = true;
                 }
 
+                // var check_ = (dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage)!.Value.Date;
+                // var openSession = await db.AttendanceLogs
+                //     .Where(x =>
+                //         (empFlag ? x.EmployeeId == dto.sid : x.UserId == dto.sid) &&
+                //             x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null
+                //             && (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date != check_
+                //         )
+                //     .OrderByDescending(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
+                //     .FirstOrDefaultAsync();
                 var openSession = await db.AttendanceLogs
                     .Where(x =>
                         (empFlag ? x.EmployeeId == dto.sid : x.UserId == dto.sid) &&
-                        x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null)
+                        x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null &&
+                        (dto.TimeInAt == null || x.TimeInAt == dto.TimeInAt) &&
+                        (dto.TimeInMobile == null || x.TimeInMobile == dto.TimeInMobile) &&
+                        (dto.TimeInImage == null || x.TimeInImage == dto.TimeInImage)
+                    )
                     .OrderByDescending(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
                     .FirstOrDefaultAsync();
-
                 if (dto.Action == "TimeIn")
                 {
                     var date_check = dto.TimeInAt ?? dto.TimeInMobile ?? dto.TimeInImage;
@@ -441,10 +453,11 @@ namespace PPFAttendanceApi.Controllers
                     {
                         a.TimeInBy = roleName;
                     }
+                    var attendance_date = DateOnly.FromDateTime(item.TimeIn);
                     a.TimeInAt = a.TimeInAt != item.TimeIn ? item.TimeIn : a.TimeInAt;
                     a.TimeInMobile = a.TimeInMobile != item.TimeIn ? item.TimeIn : a.TimeInMobile;
                     a.TimeInImage = a.TimeInImage != item.TimeIn ? item.TimeIn : a.TimeInImage;
-
+                    a.AttendanceDate = attendance_date;
 
                     if (a.TimeOutAt != item.TimeOut && a.TimeOutMobile != item.TimeOut && a.TimeOutImage != item.TimeOut)
                     {

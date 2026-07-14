@@ -21,8 +21,8 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var f = From ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-                var t = To ?? f.AddMonths(1).AddDays(-1);
+                var f = From ?? DateTime.Now;
+                var t = To ?? DateTime.Now;
 
                 var e_ids = await db.EmpUserBrDeptMappings
                         .Where(e =>
