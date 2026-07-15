@@ -29,6 +29,8 @@ public partial class ppfdbContext : DbContext
 
     public virtual DbSet<Employee> Employees { get; set; }
 
+    public virtual DbSet<EmployeeCodeLog> EmployeeCodeLogs { get; set; }
+
     public virtual DbSet<EmployeeFile> EmployeeFiles { get; set; }
 
     public virtual DbSet<EmployeeType> EmployeeTypes { get; set; }
@@ -404,6 +406,24 @@ public partial class ppfdbContext : DbContext
             entity.HasOne(d => d.ShiftType).WithMany(p => p.Employees)
                 .HasForeignKey(d => d.ShiftTypeId)
                 .HasConstraintName("employee_shiftType_key");
+        });
+
+        modelBuilder.Entity<EmployeeCodeLog>(entity =>
+        {
+            entity.HasKey(e => e.EmployeeCodeLogId).HasName("employee_code_log_pkey");
+
+            entity.ToTable("employee_code_log", "logs");
+
+            entity.Property(e => e.EmployeeCodeLogId).HasColumnName("employee_code_log_id");
+            entity.Property(e => e.CodeNumber).HasColumnName("code_number");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EmployeeCode)
+                .IsRequired()
+                .HasColumnType("character varying")
+                .HasColumnName("employee_code");
         });
 
         modelBuilder.Entity<EmployeeFile>(entity =>
