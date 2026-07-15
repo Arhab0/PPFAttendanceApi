@@ -41,8 +41,6 @@ namespace PPFAttendanceApi.Controllers
                     {
                         return NotFound(new { statusCode = 404, message = "User not found. Invalid email or password" });
                     }
-
-                    int supervisorId = env.IsDevelopment() ? 8 : 6;
                     
                     if (data_1 != null)
                     {
@@ -76,7 +74,7 @@ namespace PPFAttendanceApi.Controllers
                         return Json(new { obj, token = GenerateJwtToken(data_1.UserId, data_1.RoleId) });
                     }
 
-                    if (data_2.RoleId != supervisorId)
+                    if (data_2.RoleId != 6)
                     {
                         return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
                     }
