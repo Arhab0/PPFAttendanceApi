@@ -81,8 +81,37 @@ namespace PPFAttendanceApi.Controllers
                 db.Employees.Add(employee);
                 await db.SaveChangesAsync();
 
-                var count = await db.Employees.CountAsync();
-                employee.EmployeeCode = "EMP-" + count.ToString("D4");
+                //var count = await db.Employees.CountAsync();
+                //employee.EmployeeCode = "EMP-" + count.ToString("D4");
+
+                var last_count = await db.EmployeeCodeLogs.Select(x => new { x.CreatedAt, x.CodeNumber }).OrderByDescending(o => o.CreatedAt).FirstOrDefaultAsync();
+
+                int count = 1;
+                if (last_count == null)
+                {
+                    employee.EmployeeCode = "EMP-" + count.ToString("D4");
+
+                    await db.SaveChangesAsync();
+                    await db.EmployeeCodeLogs.AddAsync(new()
+                    {
+                        EmployeeCode = employee.EmployeeCode,
+                        CodeNumber = count
+                    });
+                    await db.SaveChangesAsync();
+                }
+                else
+                {
+                    count = last_count.CodeNumber;
+                    employee.EmployeeCode = "EMP-" + count.ToString("D4");
+
+                    await db.SaveChangesAsync();
+                    await db.EmployeeCodeLogs.AddAsync(new()
+                    {
+                        EmployeeCode = employee.EmployeeCode,
+                        CodeNumber = count
+                    });
+                    await db.SaveChangesAsync();
+                }
 
                 if (!string.IsNullOrEmpty(dto.Password) && !string.IsNullOrEmpty(dto.Email))
                 {
