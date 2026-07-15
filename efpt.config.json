@@ -31,6 +31,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "logs.employee_code_log",
+         "ObjectType": 0
+      },
+      {
          "Name": "master.branch",
          "ObjectType": 0
       },
