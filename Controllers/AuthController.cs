@@ -18,6 +18,7 @@ namespace PPFAttendanceApi.Controllers
         private readonly IConfiguration configuration = _configuration;
         private readonly ClaimsService claims = _claims;
         private readonly IWebHostEnvironment env = _env;
+
         [HttpPost("Login")]
         public async Task<IActionResult> Login(LoginRequestDto dto)
         {
@@ -30,12 +31,11 @@ namespace PPFAttendanceApi.Controllers
                 if (dto.IsFromPortal)
                 {
                     var data_1 = await db.Users.Include(x => x.Role).Include(x => x.UserFiles)
-                        .Where(x => x.UserEmail.ToLower() == dto.Email.ToLower() && x.UserPassword == encrypt &&
-                                    x.IsActive == true).FirstOrDefaultAsync();
+                        .Where(x => x.UserEmail.ToLower() == dto.Email.ToLower() && x.UserPassword == encrypt).FirstOrDefaultAsync();
 
                     var data_2 = await db.Employees.Include(x => x.Role).Include(x => x.EmployeeFiles)
-                        .Where(x => x.EmployeeEmail.ToLower() == dto.Email.ToLower() && x.EmployeePassword == encrypt &&
-                                    x.IsActive == true).FirstOrDefaultAsync();
+                        .Where(x => x.EmployeeEmail.ToLower() == dto.Email.ToLower() && x.EmployeePassword == encrypt).FirstOrDefaultAsync();
+
 
                     if (data_1 == null && data_2 == null)
                     {
@@ -46,6 +46,10 @@ namespace PPFAttendanceApi.Controllers
                     
                     if (data_1 != null)
                     {
+                        if (data_1.IsActive == false)
+                        {
+                            return BadRequest(new { statusCode = 400, message = "User is deactivated" });
+                        }
                         if (data_1.RoleId != 1)
                         {
                             return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
@@ -76,6 +80,10 @@ namespace PPFAttendanceApi.Controllers
                     {
                         return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
                     }
+                    if (data_2.IsActive == false)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "User is deactivated" });
+                    }
                     obj.Id = data_2.EmployeeId;
                     obj.Name = data_2.EmployeeName;
                     obj.Email = data_2.EmployeeEmail;
@@ -101,14 +109,13 @@ namespace PPFAttendanceApi.Controllers
                     .Include(x => x.Role)
                     .Include(x => x.EmployeeFiles)
                     .Include(x => x.EmpUserBrDeptMappings)
-                    .Where(x => x.EmployeeEmail.ToLower() == dto.Email.ToLower() && x.EmployeePassword == encrypt &&
-                                x.IsActive == true).FirstOrDefaultAsync();
+                    .Where(x => x.EmployeeEmail.ToLower() == dto.Email.ToLower() && x.EmployeePassword == encrypt).FirstOrDefaultAsync();
 
                 var m = await db.Users
                     .Include(x => x.Role)
                     .Include(x => x.EmpUserBrDeptMappings)
                     .Include(x => x.UserFiles)
-                    .Where(x => x.UserEmail.ToLower() == dto.Email.ToLower() && x.UserPassword == encrypt && x.IsActive == true).FirstOrDefaultAsync();
+                    .Where(x => x.UserEmail.ToLower() == dto.Email.ToLower() && x.UserPassword == encrypt).FirstOrDefaultAsync();
 
                 if (e == null && m == null)
                 {
@@ -117,6 +124,10 @@ namespace PPFAttendanceApi.Controllers
 
                 if (e != null)
                 {
+                    if (e.IsActive == false)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "User is deactivated" });
+                    }
                     if (e.RoleId != 4)
                     {
                         return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
@@ -187,6 +198,10 @@ namespace PPFAttendanceApi.Controllers
 
                 else
                 {
+                    if (m.IsActive == false)
+                    {
+                        return BadRequest(new { statusCode = 400, message = "User is deactivated" });
+                    }
                     if (m.RoleId != 5)
                     {
                         return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
