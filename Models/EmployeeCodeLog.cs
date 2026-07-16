@@ -14,4 +14,6 @@ public partial class EmployeeCodeLog
     public int CodeNumber { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public int EmployeeId { get; set; }
 }
