@@ -101,7 +101,7 @@ namespace PPFAttendanceApi.Controllers
                 }
                 else
                 {
-                    count = last_count.CodeNumber;
+                    count = last_count.CodeNumber + 1;
                     employee.EmployeeCode = "EMP-" + count.ToString("D4");
 
                     await db.SaveChangesAsync();
