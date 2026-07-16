@@ -424,6 +424,7 @@ public partial class ppfdbContext : DbContext
                 .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("employee_code");
+            entity.Property(e => e.EmployeeId).HasColumnName("employee_id");
         });
 
         modelBuilder.Entity<EmployeeFile>(entity =>

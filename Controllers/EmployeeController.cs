@@ -95,7 +95,8 @@ namespace PPFAttendanceApi.Controllers
                     await db.EmployeeCodeLogs.AddAsync(new()
                     {
                         EmployeeCode = employee.EmployeeCode,
-                        CodeNumber = count
+                        CodeNumber = count,
+                        EmployeeId = employee.EmployeeId
                     });
                     await db.SaveChangesAsync();
                 }
@@ -108,7 +109,8 @@ namespace PPFAttendanceApi.Controllers
                     await db.EmployeeCodeLogs.AddAsync(new()
                     {
                         EmployeeCode = employee.EmployeeCode,
-                        CodeNumber = count
+                        CodeNumber = count,
+                        EmployeeId = employee.EmployeeId
                     });
                     await db.SaveChangesAsync();
                 }
