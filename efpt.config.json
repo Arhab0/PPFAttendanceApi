@@ -51,7 +51,15 @@
          "ObjectType": 0
       },
       {
+         "Name": "master.menu",
+         "ObjectType": 0
+      },
+      {
          "Name": "master.role",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.role_menu_mapping",
          "ObjectType": 0
       },
       {

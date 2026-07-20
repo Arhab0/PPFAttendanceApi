@@ -41,7 +41,7 @@ namespace PPFAttendanceApi.Controllers
                     {
                         return NotFound(new { statusCode = 404, message = "User not found. Invalid email or password" });
                     }
-                    
+
                     if (data_1 != null)
                     {
                         if (data_1.IsActive == false)
@@ -71,7 +71,30 @@ namespace PPFAttendanceApi.Controllers
                             };
                         }
 
-                        return Json(new { obj, token = GenerateJwtToken(data_1.UserId, data_1.RoleId) });
+                        var menu_1 = await db.RoleMenuMappings
+                                   .AsNoTracking()
+                                   .Include(x => x.Menu)
+                                   .Where(x => x.RoleId == data_1.RoleId && (x.View || x.Create || x.Edit || x.Delete))
+                                   .Select(x => new
+                                   {
+                                       x.Menu.MenuId,
+                                       x.Menu.MenuName,
+                                       x.Menu.SortingOrder,
+                                       x.Menu.Path,
+                                       x.Menu.Description,
+                                       x.Menu.Icon,
+                                       x.Menu.IsParent,
+                                       x.Menu.ParentId,
+                                       x.Menu.IsActive,
+                                       x.View,
+                                       x.Edit,
+                                       x.Create,
+                                       x.Delete
+                                   })
+                                   .OrderBy(x => x.SortingOrder)
+                                   .ToListAsync();
+
+                        return Json(new { obj, token = GenerateJwtToken(data_1.UserId, data_1.RoleId), menus = menu_1 });
                     }
 
                     if (data_2.RoleId != 6)
@@ -100,7 +123,30 @@ namespace PPFAttendanceApi.Controllers
                         };
                     }
 
-                    return Json(new { obj, token = GenerateJwtToken(data_2.EmployeeId, data_2.RoleId) });
+                    var menu_2 = await db.RoleMenuMappings
+                                   .AsNoTracking()
+                                   .Include(x => x.Menu)
+                                   .Where(x => x.RoleId == data_2.RoleId && (x.View || x.Create || x.Edit || x.Delete))
+                                   .Select(x => new
+                                   {
+                                       x.Menu.MenuId,
+                                       x.Menu.MenuName,
+                                       x.Menu.SortingOrder,
+                                       x.Menu.Path,
+                                       x.Menu.Description,
+                                       x.Menu.Icon,
+                                       x.Menu.IsParent,
+                                       x.Menu.ParentId,
+                                       x.Menu.IsActive,
+                                       x.View,
+                                       x.Edit,
+                                       x.Create,
+                                       x.Delete
+                                   })
+                                   .OrderBy(x => x.SortingOrder)
+                                   .ToListAsync();
+
+                    return Json(new { obj, token = GenerateJwtToken(data_2.EmployeeId, data_2.RoleId), menus = menu_2 });
                 }
 
                 var e = await db.Employees
@@ -262,7 +308,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var check = await db.Users.Where(x=>x.UserEmail == email && x.UserPassword == Security.Encrypt(password)).FirstOrDefaultAsync();
+                var check = await db.Users.Where(x => x.UserEmail == email && x.UserPassword == Security.Encrypt(password)).FirstOrDefaultAsync();
 
                 if (check == null)
                 {

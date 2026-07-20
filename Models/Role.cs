@@ -17,5 +17,7 @@ public partial class Role
 
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
+    public virtual ICollection<RoleMenuMapping> RoleMenuMappings { get; set; } = new List<RoleMenuMapping>();
+
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 }

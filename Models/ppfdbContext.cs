@@ -37,9 +37,13 @@ public partial class ppfdbContext : DbContext
 
     public virtual DbSet<Location> Locations { get; set; }
 
+    public virtual DbSet<Menu> Menus { get; set; }
+
     public virtual DbSet<PaymentType> PaymentTypes { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
+
+    public virtual DbSet<RoleMenuMapping> RoleMenuMappings { get; set; }
 
     public virtual DbSet<ShiftType> ShiftTypes { get; set; }
 
@@ -523,6 +527,45 @@ public partial class ppfdbContext : DbContext
                 .HasConstraintName("location_user_key");
         });
 
+        modelBuilder.Entity<Menu>(entity =>
+        {
+            entity.HasKey(e => e.MenuId).HasName("menu_pkey");
+
+            entity.ToTable("menu", "master");
+
+            entity.Property(e => e.MenuId).HasColumnName("menu_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description)
+                .HasColumnType("character varying")
+                .HasColumnName("description");
+            entity.Property(e => e.Icon)
+                .HasColumnType("character varying")
+                .HasColumnName("icon");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+            entity.Property(e => e.IsParent).HasColumnName("is_parent");
+            entity.Property(e => e.MenuName)
+                .IsRequired()
+                .HasColumnType("character varying")
+                .HasColumnName("menu_name");
+            entity.Property(e => e.ParentId).HasColumnName("parent_id");
+            entity.Property(e => e.Path)
+                .HasColumnType("character varying")
+                .HasColumnName("path");
+            entity.Property(e => e.SortingOrder).HasColumnName("sorting_order");
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Parent).WithMany(p => p.InverseParent)
+                .HasForeignKey(d => d.ParentId)
+                .HasConstraintName("menu_isParent_key");
+        });
+
         modelBuilder.Entity<PaymentType>(entity =>
         {
             entity.HasKey(e => e.PaymentTypeId).HasName("payment_type_pkey");
@@ -557,6 +600,38 @@ public partial class ppfdbContext : DbContext
                 .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("role_name");
+        });
+
+        modelBuilder.Entity<RoleMenuMapping>(entity =>
+        {
+            entity.HasKey(e => e.RoleMenuMappingId).HasName("role_menu_mapping_pkey");
+
+            entity.ToTable("role_menu_mapping", "master");
+
+            entity.Property(e => e.RoleMenuMappingId).HasColumnName("role_menu_mapping_id");
+            entity.Property(e => e.Create).HasColumnName("create");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Delete).HasColumnName("delete");
+            entity.Property(e => e.Edit).HasColumnName("edit");
+            entity.Property(e => e.MenuId).HasColumnName("menu_id");
+            entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.View).HasColumnName("view");
+
+            entity.HasOne(d => d.Menu).WithMany(p => p.RoleMenuMappings)
+                .HasForeignKey(d => d.MenuId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("mapping_menu_key");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.RoleMenuMappings)
+                .HasForeignKey(d => d.RoleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("mapping_role_key");
         });
 
         modelBuilder.Entity<ShiftType>(entity =>
