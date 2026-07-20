@@ -589,6 +589,8 @@ public partial class ppfdbContext : DbContext
             entity.ToTable("role", "master");
 
             entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.CanAccessMobileApplication).HasColumnName("can_access_mobile_application");
+            entity.Property(e => e.CanAccessPortal).HasColumnName("can_access_portal");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone")

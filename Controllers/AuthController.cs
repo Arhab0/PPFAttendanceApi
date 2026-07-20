@@ -28,6 +28,7 @@ namespace PPFAttendanceApi.Controllers
 
                 UserLoginDto obj = new();
 
+                // ==================================== Portal
                 if (dto.IsFromPortal)
                 {
                     var data_1 = await db.Users.Include(x => x.Role).Include(x => x.UserFiles)
@@ -48,7 +49,7 @@ namespace PPFAttendanceApi.Controllers
                         {
                             return BadRequest(new { statusCode = 400, message = "User is deactivated" });
                         }
-                        if (data_1.RoleId != 1)
+                        if (!data_1.Role.CanAccessPortal)
                         {
                             return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
                         }
@@ -97,7 +98,7 @@ namespace PPFAttendanceApi.Controllers
                         return Json(new { obj, token = GenerateJwtToken(data_1.UserId, data_1.RoleId), menus = menu_1 });
                     }
 
-                    if (data_2.RoleId != 6)
+                    if (!data_2.Role.CanAccessPortal)
                     {
                         return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
                     }
@@ -149,6 +150,8 @@ namespace PPFAttendanceApi.Controllers
                     return Json(new { obj, token = GenerateJwtToken(data_2.EmployeeId, data_2.RoleId), menus = menu_2 });
                 }
 
+
+                // ==================================== Mobile
                 var e = await db.Employees
                     .Include(x => x.Role)
                     .Include(x => x.EmployeeFiles)
@@ -172,7 +175,7 @@ namespace PPFAttendanceApi.Controllers
                     {
                         return BadRequest(new { statusCode = 400, message = "User is deactivated" });
                     }
-                    if (e.RoleId != 4)
+                    if (!e.Role.CanAccessMobileApplication)
                     {
                         return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
                     }
@@ -246,7 +249,7 @@ namespace PPFAttendanceApi.Controllers
                     {
                         return BadRequest(new { statusCode = 400, message = "User is deactivated" });
                     }
-                    if (m.RoleId != 5)
+                    if (!m.Role.CanAccessMobileApplication)
                     {
                         return Unauthorized(new { statusCode = 401, message = "Unauthorized access." });
                     }

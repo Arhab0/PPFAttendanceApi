@@ -15,6 +15,10 @@ public partial class Role
 
     public bool HasLoginAccess { get; set; }
 
+    public bool CanAccessPortal { get; set; }
+
+    public bool CanAccessMobileApplication { get; set; }
+
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
     public virtual ICollection<RoleMenuMapping> RoleMenuMappings { get; set; } = new List<RoleMenuMapping>();

@@ -19,7 +19,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var roles = await db.Roles.Select(x => new { x.RoleId, x.RoleName, x.CreatedAt,x.HasLoginAccess }).ToListAsync();
+                var roles = await db.Roles.Select(x => new { x.RoleId, x.RoleName, x.CreatedAt,x.HasLoginAccess,x.CanAccessPortal,x.CanAccessMobileApplication }).ToListAsync();
                 return Json(roles);
             }
             catch (Exception e)
@@ -29,7 +29,7 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpPost("AddRole")]
-        public async Task<IActionResult> AddRole(string roleName,bool hasLoginAccess)
+        public async Task<IActionResult> AddRole(string roleName,bool hasLoginAccess, bool canAccessPortal, bool canAccessMobileApplication)
         {
             await db.Database.BeginTransactionAsync();
             try
@@ -46,7 +46,9 @@ namespace PPFAttendanceApi.Controllers
                 {
                     RoleName = roleName,
                     HasLoginAccess = hasLoginAccess,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    CanAccessPortal = canAccessPortal,
+                    CanAccessMobileApplication = canAccessMobileApplication
                 });
 
                 await db.SaveChangesAsync();
@@ -65,7 +67,7 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var role = await db.Roles.Where(x => x.RoleId == roleId).Select(x => new { x.RoleId, x.RoleName, x.CreatedAt,x.HasLoginAccess }).FirstOrDefaultAsync();
+                var role = await db.Roles.Where(x => x.RoleId == roleId).Select(x => new { x.RoleId, x.RoleName, x.CreatedAt,x.HasLoginAccess,x.CanAccessPortal,x.CanAccessMobileApplication }).FirstOrDefaultAsync();
                 if (role == null)
                 {
                     return NotFound(new { statusCode = 404, message = "Role not found." });
@@ -79,7 +81,7 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpPost("UpdateRole")]
-        public async Task<IActionResult> UpdateRole(int roleId, string roleName, bool HasLoginAccess)
+        public async Task<IActionResult> UpdateRole(int roleId, string roleName, bool HasLoginAccess, bool canAccessPortal, bool canAccessMobileApplication)
         {
             await db.Database.BeginTransactionAsync();
             try
@@ -95,6 +97,9 @@ namespace PPFAttendanceApi.Controllers
                 var r = await db.Roles.Where(x => x.RoleId == roleId).FirstOrDefaultAsync();
                 r.RoleName = roleName;
                 r.HasLoginAccess = HasLoginAccess;
+                r.CanAccessPortal = canAccessPortal;
+                r.CanAccessMobileApplication = canAccessMobileApplication;
+
 
                 await db.SaveChangesAsync();
                 await db.Database.CommitTransactionAsync();
