@@ -477,5 +477,182 @@ namespace PPFAttendanceApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost("SyncAttendance")]
+        public async Task<IActionResult> SyncAttendance(List<AttendanceDto> dto)
+        {
+            await db.Database.BeginTransactionAsync();
+            try
+            {
+                if (dto.Count == 0)
+                    return BadRequest(new { statusCode = 400, message = "No attendance data to sync." });
+
+                var sid = int.Parse(claims["sid"]);
+                var roleId = int.Parse(claims["RoleId"]);
+                bool empFlag = roleId == 3;
+
+                var employeeData = empFlag
+                    ? await db.Employees.AsNoTracking().Where(x => x.EmployeeId == sid).FirstOrDefaultAsync()
+                    : null;
+
+                var existingLogs = empFlag
+                    ? await db.AttendanceLogs.Where(x => x.EmployeeId == sid).ToListAsync()
+                    : await db.AttendanceLogs.Where(x => x.UserId == sid).ToListAsync();
+
+                // Duplicate-date guard: keyed by TimeIn date, from ALL existing logs (open or closed)
+                var existingByDate = existingLogs
+                    .Where(x => x.TimeInAt.HasValue || x.TimeInMobile.HasValue || x.TimeInImage.HasValue)
+                    .GroupBy(x => (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date)
+                    .ToDictionary(g => g.Key, g => g.First());
+
+                // State-based open session — NOT date-scoped, matches MarkAttendanceTablet logic
+                AttendanceLog? openLog = existingLogs
+                    .Where(x => x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null)
+                    .OrderByDescending(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
+                    .FirstOrDefault();
+
+                var skipped = new List<string>();
+                var newCount = 0;
+                var updatedCount = 0;
+
+                // Process in chronological order — offline batches can arrive out of order
+                var orderedDto = dto
+                    .Select(item => new
+                    {
+                        Item = item,
+                        Ts = item.TimeInAt ?? item.TimeInMobile ?? item.TimeInImage
+                             ?? item.TimeOutAt ?? item.TimeOutMobile ?? item.TimeOutImage
+                    })
+                    .OrderBy(x => x.Ts)
+                    .Select(x => x.Item)
+                    .ToList();
+
+                foreach (var item in orderedDto)
+                {
+                    bool hasTimeIn = item.TimeInAt != null || item.TimeInMobile != null || item.TimeInImage != null;
+                    bool hasTimeOut = item.TimeOutAt != null || item.TimeOutMobile != null || item.TimeOutImage != null;
+
+                    if (!hasTimeIn && !hasTimeOut)
+                    {
+                        skipped.Add("Skipped one entry — no TimeIn or TimeOut timestamp provided.");
+                        continue;
+                    }
+
+                    if (hasTimeIn)
+                    {
+                        var date = (item.TimeInAt ?? item.TimeInMobile ?? item.TimeInImage)!.Value.Date;
+
+                        if (existingByDate.ContainsKey(date))
+                        {
+                            skipped.Add($"Skipped {date:yyyy-MM-dd} — attendance already marked for that date.");
+                            continue;
+                        }
+
+                        if (openLog != null)
+                        {
+                            var openDate = (openLog.TimeInAt ?? openLog.TimeInMobile ?? openLog.TimeInImage)!.Value;
+                            skipped.Add($"Skipped TimeIn for {date:yyyy-MM-dd} — session opened {openDate:yyyy-MM-dd} is still unclosed.");
+                            continue;
+                        }
+
+                        if (string.IsNullOrEmpty(item.TimeInLat) || string.IsNullOrEmpty(item.TimeInLon) ||
+                            string.IsNullOrEmpty(item.TimeInLocationName) || item.AttendanceInImage == null)
+                        {
+                            skipped.Add($"Skipped {date:yyyy-MM-dd} — TimeIn location/image fields missing.");
+                            continue;
+                        }
+
+                        if (hasTimeOut && (string.IsNullOrEmpty(item.TimeOutLat) || string.IsNullOrEmpty(item.TimeOutLon) ||
+                            string.IsNullOrEmpty(item.TimeOutLocationName) || item.AttendanceOutImage == null))
+                        {
+                            skipped.Add($"Skipped {date:yyyy-MM-dd} — entry has TimeOut timestamp but is missing TimeOut location/image fields.");
+                            continue;
+                        }
+
+                        var log = new AttendanceLog
+                        {
+                            AttendanceDate = DateOnly.FromDateTime(date),
+                            AttendanceInLat = item.TimeInLat,
+                            AttendanceInLon = item.TimeInLon,
+                            TimeInAt = item.TimeInAt,
+                            TimeInMobile = item.TimeInMobile,
+                            TimeInImage = item.TimeInImage,
+                            TimeInLocationName = item.TimeInLocationName,
+                            TimeInBy = "Self",
+                            TimeInType = item.TimeInType,
+                            AttendanceInImagePath = item.AttendanceInImage != null ? await UploadDoc.UploadEmployeeAttendaceImage(item.AttendanceInImage, employeeData.EmployeeCode) : "No image provided",
+                            AttendanceStatusId = hasTimeOut ? 2 : 1,
+                            EmployeeId = empFlag ? sid : null,
+                            UserId = empFlag ? null : sid,
+                        };
+
+                        if (hasTimeOut)
+                        {
+                            log.AttendanceOutLat = item.TimeOutLat;
+                            log.AttendanceOutLon = item.TimeOutLon;
+                            log.TimeOutAt = item.TimeOutAt;
+                            log.TimeOutMobile = item.TimeOutMobile;
+                            log.TimeOutImage = item.TimeOutImage;
+                            log.TimeOutLocationName = item.TimeOutLocationName;
+                            log.TimeOutBy = "Self";
+                            log.TimeOutType = item.TimeOutType;
+                            log.AttendanceOutImagePath = item.AttendanceOutImage != null ? await UploadDoc.UploadEmployeeAttendaceImage(item.AttendanceOutImage, employeeData.EmployeeCode) : "No image provided";
+                        }
+
+                        await db.AttendanceLogs.AddAsync(log);
+                        existingByDate[date] = log;
+                        openLog = hasTimeOut ? null : log; // still open only if no TimeOut came with it
+                        newCount++;
+                    }
+                    else // TimeOut-only entry — close whatever session is currently open, regardless of date
+                    {
+                        if (openLog == null)
+                        {
+                            skipped.Add("Skipped a TimeOut entry — no open session found to check out from.");
+                            continue;
+                        }
+
+                        if (string.IsNullOrEmpty(item.TimeOutLat) || string.IsNullOrEmpty(item.TimeOutLon) ||
+                            string.IsNullOrEmpty(item.TimeOutLocationName) || item.AttendanceOutImage == null)
+                        {
+                            skipped.Add("Skipped a TimeOut entry — TimeOut location/image fields missing.");
+                            continue;
+                        }
+
+                        openLog.AttendanceOutLat = item.TimeOutLat;
+                        openLog.AttendanceOutLon = item.TimeOutLon;
+                        openLog.TimeOutAt = item.TimeOutAt;
+                        openLog.TimeOutMobile = item.TimeOutMobile;
+                        openLog.TimeOutImage = item.TimeOutImage;
+                        openLog.TimeOutLocationName = item.TimeOutLocationName;
+                        openLog.TimeOutBy = "Self";
+                        openLog.TimeOutType = item.TimeOutType;
+                        openLog.AttendanceStatusId = 2;
+                        openLog.AttendanceOutImagePath = item.AttendanceOutImage != null ? await UploadDoc.UploadEmployeeAttendaceImage(item.AttendanceOutImage, employeeData.EmployeeCode) : "No image provided";
+
+                        updatedCount++;
+                        openLog = null; // session now closed
+                    }
+                }
+
+                if (newCount == 0 && updatedCount == 0)
+                    return Json(new { statusCode = 200, message = "No new attendance data to sync.", skipped });
+
+                await db.SaveChangesAsync();
+                await db.Database.CommitTransactionAsync();
+
+                return Json(new
+                {
+                    statusCode = 200,
+                    message = $"Synced {newCount} new and updated {updatedCount} existing records successfully.",
+                    skipped
+                });
+            }
+            catch (Exception ex)
+            {
+                await db.Database.RollbackTransactionAsync();
+                return BadRequest(new { statusCode = 500, message = ex.Message });
+            }
+        }
     }
 }
