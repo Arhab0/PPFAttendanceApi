@@ -262,19 +262,35 @@ namespace PPFAttendanceApi.Controllers
                         obj.RoleId = m.RoleId;
                         obj.RoleName = m.Role.RoleName;
 
-                        obj.Employees = db.Employees
-                            .AsNoTracking()
-                            .Include(x => x.Role)
-                            .Include(x => x.Locations)
-                            .Where(e => e.IsActive == true).Select(x => new RegisteredEmployeesData()
-                            {
+                        var eids = await db.Employees.Where(x => x.IsActive == true).Select(e => e.EmployeeId).ToListAsync();
 
-                                EmployeeId = x.EmployeeId,
-                                EmployeeName = x.EmployeeName,
-                                EmployeeEmail = x.EmployeeEmail,
-                                EmployeeCode = x.EmployeeCode,
-                                MobileNumber = x.MobileNumber,
-                                File = x.EmployeeFiles
+                        var date_ = new DateOnly();
+
+                        var att = await db.AttendanceLogs
+                                                .Where(x => x.EmployeeId.HasValue && eids.Contains(x.EmployeeId.Value) && (x.AttendanceDate.AddDays(-2) >= date_ && x.AttendanceDate <= date_))
+                                                .GroupBy(x => x.EmployeeId.Value)
+                                                .ToDictionaryAsync(
+                                                    g => g.Key,
+                                                    g => g.ToList()
+                                                );
+
+
+                        var employees = await db.Employees
+                                        .AsNoTracking()
+                                        .Include(x => x.Role)
+                                        .Include(x => x.Locations)
+                                        .Include(x => x.EmployeeFiles)
+                                        .Where(x => x.IsActive)
+                                        .ToListAsync();
+
+                        obj.Employees = employees.Select(x => new RegisteredEmployeesData
+                        {
+                            EmployeeId = x.EmployeeId,
+                            EmployeeName = x.EmployeeName,
+                            EmployeeEmail = x.EmployeeEmail,
+                            EmployeeCode = x.EmployeeCode,
+                            MobileNumber = x.MobileNumber,
+                            File = x.EmployeeFiles
                                 .Select(f => new FileDto
                                 {
                                     FileId = f.EmployeeFileId,
@@ -283,15 +299,93 @@ namespace PPFAttendanceApi.Controllers
                                     Sid = x.EmployeeId
                                 }).FirstOrDefault(),
 
-                                Locations_ = x.Locations.Select(l => new UserLocationDto()
+                            attendance = att.TryGetValue(x.EmployeeId, out var logs)
+                                ? logs.Select(a => new AttendanceDataLog
                                 {
-                                    LocationId = l.LocationId,
-                                    Latitude = l.Latitude,
-                                    Longitude = l.Longitude,
-                                    LocationType = l.LocationName,
-                                    Radius = l.Radius
+                                    AttendanceLogId = a.AttendanceLogId,
+                                    AttendanceInLat = a.AttendanceInLat,
+                                    AttendanceInLon = a.AttendanceInLon,
+                                    TimeInLocationName = a.TimeInLocationName,
+                                    TimeInAt = a.TimeInAt,
+                                    TimeInMobile = a.TimeInMobile,
+                                    TimeInImage = a.TimeInImage,
+                                    TimeInBy = a.TimeInBy,
+                                    TimeInType = a.TimeInType,
+                                    AttendanceOutLat = a.AttendanceOutLat,
+                                    AttendanceOutLon = a.AttendanceOutLon,
+                                    TimeOutLocationName = a.TimeOutLocationName,
+                                    TimeOutBy = a.TimeOutBy,
+                                    TimeOutAt = a.TimeOutAt,
+                                    TimeOutMobile = a.TimeOutMobile,
+                                    TimeOutImage = a.TimeOutImage,
+                                    TimeOutType = a.TimeOutType,
+                                    AttendanceDate = a.AttendanceDate
                                 }).ToList()
-                            }).ToList();
+                                : new List<AttendanceDataLog>(),
+
+                            Locations_ = x.Locations.Select(l => new UserLocationDto
+                            {
+                                LocationId = l.LocationId,
+                                Latitude = l.Latitude,
+                                Longitude = l.Longitude,
+                                LocationType = l.LocationName,
+                                Radius = l.Radius
+                            }).ToList()
+                        }).ToList();
+
+                        //obj.Employees = db.Employees
+                        //    .AsNoTracking()
+                        //    .Include(x => x.Role)
+                        //    .Include(x => x.Locations)
+                        //    .Where(e => e.IsActive == true).Select(x => new RegisteredEmployeesData()
+                        //    {
+
+                        //        EmployeeId = x.EmployeeId,
+                        //        EmployeeName = x.EmployeeName,
+                        //        EmployeeEmail = x.EmployeeEmail,
+                        //        EmployeeCode = x.EmployeeCode,
+                        //        MobileNumber = x.MobileNumber,
+                        //        File = x.EmployeeFiles
+                        //        .Select(f => new FileDto
+                        //        {
+                        //            FileId = f.EmployeeFileId,
+                        //            FilePath = $"/images/employee/{x.EmployeeCode}/{f.FilePath}",
+                        //            Extension = f.Extension,
+                        //            Sid = x.EmployeeId
+                        //        }).FirstOrDefault(),
+
+                        //        attendance = att.TryGetValue(x.EmployeeId, out var logs)
+                        //                    ? logs.Select(a => new AttendanceDataLog
+                        //                    {
+                        //                        AttendanceLogId = a.AttendanceLogId,
+                        //                        AttendanceInLat = a.AttendanceInLat,
+                        //                        AttendanceInLon = a.AttendanceInLon,
+                        //                        TimeInLocationName = a.TimeInLocationName,
+                        //                        TimeInAt = a.TimeInAt,
+                        //                        TimeInMobile = a.TimeInMobile,
+                        //                        TimeInImage = a.TimeInImage,
+                        //                        TimeInBy = a.TimeInBy,
+                        //                        TimeInType = a.TimeInType,
+                        //                        AttendanceOutLat = a.AttendanceOutLat,
+                        //                        AttendanceOutLon = a.AttendanceOutLon,
+                        //                        TimeOutLocationName = a.TimeOutLocationName,
+                        //                        TimeOutBy = a.TimeOutBy,
+                        //                        TimeOutAt = a.TimeOutAt,
+                        //                        TimeOutMobile = a.TimeOutMobile,
+                        //                        TimeOutImage = a.TimeOutImage,
+                        //                        TimeOutType = a.TimeOutType,
+                        //                        AttendanceDate = a.AttendanceDate
+                        //                    }).ToList()
+                        //                    : new List<AttendanceDataLog>(),
+                        //        Locations_ = x.Locations.Select(l => new UserLocationDto()
+                        //        {
+                        //            LocationId = l.LocationId,
+                        //            Latitude = l.Latitude,
+                        //            Longitude = l.Longitude,
+                        //            LocationType = l.LocationName,
+                        //            Radius = l.Radius
+                        //        }).ToList()
+                        //    }).ToList();
 
                         return Json(new { obj, token = GenerateJwtToken(m.UserId, m.RoleId) });
                     }

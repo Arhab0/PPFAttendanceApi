@@ -41,6 +41,7 @@ namespace PPFAttendanceApi.Dto
         public FileDto File { get; set; }
         public List<UserLocationDto> Locations_ { get; set; } = new List<UserLocationDto>();
         public List<BranchDeptMapping> mapping { get; set; } = new();
+        public List<AttendanceDataLog> attendance { get; set; } = new();
     }
 
     public class BranchDeptMapping
@@ -50,5 +51,27 @@ namespace PPFAttendanceApi.Dto
         public string BranchName { get; set; }
         public int? DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
+    }
+
+    public class AttendanceDataLog
+    {
+        public int AttendanceLogId { get; set; }
+        public string? AttendanceInLat { get; set; }
+        public string? AttendanceInLon { get; set; }
+        public string? TimeInLocationName { get; set; }
+        public DateTime? TimeInAt { get; set; }
+        public DateTime? TimeInMobile { get; set; }
+        public DateTime? TimeInImage { get; set; }
+        public string? TimeInBy { get; set; }
+        public string? TimeInType { get; set; }
+        public string? AttendanceOutLat { get; set; }
+        public string? AttendanceOutLon { get; set; }
+        public string? TimeOutLocationName { get; set; }
+        public string? TimeOutBy { get; set; }
+        public DateTime? TimeOutAt { get; set; }
+        public DateTime? TimeOutMobile { get; set; }
+        public DateTime? TimeOutImage { get; set; }
+        public string? TimeOutType { get; set; }
+        public DateOnly? AttendanceDate { get; set; }
     }
 }

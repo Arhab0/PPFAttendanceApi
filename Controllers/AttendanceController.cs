@@ -78,45 +78,16 @@ namespace PPFAttendanceApi.Controllers
         {
             try
             {
-                var roleId = int.Parse(claims["RoleId"]);
-                var sid = int.Parse(claims["sid"]);
-                var targetDate = date.ToDateTime(TimeOnly.MinValue);
-
-                AttendanceLog? entity = roleId == 3
-                    ? await db.AttendanceLogs.Include(e => e.Employee)
-                        .Where(x =>
-                            x.EmployeeId == sid &&
-                                 (
-                                     (x.TimeInAt.HasValue && x.TimeInAt.Value.Date == targetDate) ||
-                                     (x.TimeInMobile.HasValue && x.TimeInMobile.Value.Date == targetDate) ||
-                                     (x.TimeInImage.HasValue && x.TimeInImage.Value.Date == targetDate)
-                                 )
-                             )
-                        .FirstOrDefaultAsync()
-                    : await db.AttendanceLogs
-                        .Where(x =>
-                            x.UserId == sid &&
-                                 (
-                                     (x.TimeInAt.HasValue && x.TimeInAt.Value.Date == targetDate) ||
-                                     (x.TimeInMobile.HasValue && x.TimeInMobile.Value.Date == targetDate) ||
-                                     (x.TimeInImage.HasValue && x.TimeInImage.Value.Date == targetDate)
-                                 )
-                             )
-                        .FirstOrDefaultAsync();
+                AttendanceLog? entity = await db.AttendanceLogs.Include(e => e.Employee)
+                        .Where(x => x.EmployeeId != null && x.AttendanceDate == date).FirstOrDefaultAsync();
 
                 var data = entity == null ? null : new
                 {
                     entity.AttendanceLogId,
+                    entity.AttendanceDate,
                     TimeInAt = entity.TimeInAt?.ToString("HH:mm:ss"),
                     TimeInMobile = entity.TimeInMobile?.ToString("HH:mm:ss"),
                     TimeInImage = entity.TimeInImage?.ToString("HH:mm:ss"),
-                    AttendanceInImagePath = roleId == 3
-                                                    ?
-                                                    entity.AttendanceInImagePath != null ?
-                                                        $"/images/employeeAttendance/{entity.Employee.EmployeeCode}/{(entity.TimeInAt ?? entity.TimeInMobile ?? entity.TimeInImage)?.ToString("dd-MMM-yyyy")}/{entity.AttendanceInImagePath}" : null
-                                                    :
-                                                    entity.AttendanceInImagePath != null ?
-                                                     $"/images/staffAttendance/{entity.UserId.ToString()}/{(entity.TimeInAt ?? entity.TimeInMobile ?? entity.TimeInImage)?.ToString("dd-MMM-yyyy")}/{entity.AttendanceInImagePath}" : null,
                     entity.TimeInLocationName,
                     entity.AttendanceInLat,
                     entity.AttendanceInLon,
@@ -126,13 +97,6 @@ namespace PPFAttendanceApi.Controllers
                     entity.TimeOutLocationName,
                     entity.AttendanceOutLat,
                     entity.AttendanceOutLon,
-                    AttendanceOutImagePath = roleId == 3
-                                                    ?
-                                                    entity.AttendanceOutImagePath != null ?
-                                                        $"/images/employeeAttendance/{entity.Employee.EmployeeCode}/{(entity.TimeOutAt ?? entity.TimeOutMobile ?? entity.TimeOutImage)?.ToString("dd-MMM-yyyy")}/{entity.AttendanceOutImagePath}" : null
-                                                    :
-                                                    entity.AttendanceOutImagePath != null ?
-                                                     $"/images/staffAttendance/{entity.UserId.ToString()}/{(entity.TimeOutAt ?? entity.TimeOutMobile ?? entity.TimeOutImage)?.ToString("dd-MMM-yyyy")}/{entity.AttendanceOutImagePath}" : null,
                 };
 
                 return Json(new { statusCode = 200, data });
@@ -439,7 +403,7 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest(new { statusCode = 400, message = "Only HR and Admin can update attendance." });
                 }
 
-                var roleName = await db.Roles.Where(x=>x.RoleId == roleId).Select(x=>x.RoleName).FirstOrDefaultAsync();
+                var roleName = await db.Roles.Where(x => x.RoleId == roleId).Select(x => x.RoleName).FirstOrDefaultAsync();
                 if (dto.Count == 0)
                 {
                     return BadRequest(new { statusCode = 400, message = "No attendance records provided for update." });
@@ -449,7 +413,7 @@ namespace PPFAttendanceApi.Controllers
                 {
                     var a = await db.AttendanceLogs.Where(x => x.AttendanceLogId == item.AttendanceLogId).FirstOrDefaultAsync();
 
-                    if(a.TimeInAt != item.TimeIn && a.TimeInMobile != item.TimeIn && a.TimeInImage != item.TimeIn)
+                    if (a.TimeInAt != item.TimeIn && a.TimeInMobile != item.TimeIn && a.TimeInImage != item.TimeIn)
                     {
                         a.TimeInBy = roleName;
                     }
