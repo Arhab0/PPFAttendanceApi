@@ -264,15 +264,21 @@ namespace PPFAttendanceApi.Controllers
 
                         var eids = await db.Employees.Where(x => x.IsActive == true).Select(e => e.EmployeeId).ToListAsync();
 
-                        var date_ = new DateOnly();
+                        var date_ = DateOnly.FromDateTime(DateTime.Today);
+
+                        var fromDate = date_.AddDays(-2);
 
                         var att = await db.AttendanceLogs
-                                                .Where(x => x.EmployeeId.HasValue && eids.Contains(x.EmployeeId.Value) && (x.AttendanceDate.AddDays(-2) >= date_ && x.AttendanceDate <= date_))
-                                                .GroupBy(x => x.EmployeeId.Value)
-                                                .ToDictionaryAsync(
-                                                    g => g.Key,
-                                                    g => g.ToList()
-                                                );
+                            .Where(x =>
+                                x.EmployeeId.HasValue &&
+                                eids.Contains(x.EmployeeId.Value) &&
+                                x.AttendanceDate >= fromDate &&
+                                x.AttendanceDate <= date_)
+                            .GroupBy(x => x.EmployeeId.Value)
+                            .ToDictionaryAsync(
+                                g => g.Key,
+                                g => g.ToList()
+                            );
 
 
                         var employees = await db.Employees
