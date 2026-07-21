@@ -332,6 +332,7 @@ namespace PPFAttendanceApi.Controllers
                                     l.LocationName,
                                     l.Radius
                                 }).ToList(),
+                                File = x.EmployeeFiles.Select(x=>x.FilePath).FirstOrDefault(),
                                 IsFaceRegistered = x.EmployeeFiles.Any()
                             })
                             .OrderBy(x => x.EmployeeId)
