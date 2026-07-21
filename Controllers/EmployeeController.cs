@@ -300,6 +300,7 @@ namespace PPFAttendanceApi.Controllers
                             .Include(x => x.ShiftType)
                             .Include(x => x.PaymentType)
                             .Include(x => x.EmployeeFiles)
+                            .Include(x=> x.Locations)
                             .Include(x => x.Role)
                             .Select(x => new
                             {
@@ -323,6 +324,14 @@ namespace PPFAttendanceApi.Controllers
                                 MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
                                 DepartmentName = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Department.DepartmentName).FirstOrDefault(),
                                 OtherBranches = string.Join(",", x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == false).Select(x => x.Branch.BranchName)),
+                                Locations = x.Locations.Select(l => new
+                                {
+                                    l.LocationId,
+                                    l.Latitude,
+                                    l.Longitude,
+                                    l.LocationName,
+                                    l.Radius
+                                }).ToList(),
                                 IsFaceRegistered = x.EmployeeFiles.Any()
                             })
                             .OrderBy(x => x.EmployeeId)
