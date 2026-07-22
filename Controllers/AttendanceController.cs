@@ -649,5 +649,225 @@ namespace PPFAttendanceApi.Controllers
                 return BadRequest(new { statusCode = 500, message = ex.Message });
             }
         }
+
+        [HttpPost("SyncAttendanceV2")]
+        public async Task<IActionResult> SyncAttendanceV2(List<AttendanceDto> dto)
+        {
+            await db.Database.BeginTransactionAsync();
+            try
+            {
+                if (dto.Count == 0)
+                    return BadRequest(new { statusCode = 400, message = "No attendance data to sync." });
+
+                if (dto.Any(x => x.sid == null))
+                    return BadRequest(new { statusCode = 400, message = "sid is required on every entry." });
+
+                var sids = dto.Select(x => x.sid!.Value).Distinct().ToList();
+
+                var employees = await db.Employees
+                    .Where(x => sids.Contains(x.EmployeeId))
+                    .ToDictionaryAsync(x => x.EmployeeId);
+
+                var existingLogsBySid = (await db.AttendanceLogs
+                    .Where(x => x.EmployeeId != null && sids.Contains(x.EmployeeId.Value))
+                    .ToListAsync())
+                    .GroupBy(x => x.EmployeeId!.Value)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                var skipped = new List<string>();
+                var newCount = 0;
+                var updatedCount = 0;
+
+                // Mirrors MarkAttendanceTablet's conditional TimeIn-field matching on open-session lookup:
+                // if the item resends the original TimeIn values, they must match the open log's TimeIn values.
+                // If the item doesn't send them, the match is skipped (same as tablet behavior).
+                bool TimeInMatches(AttendanceLog log, AttendanceDto item) =>
+                    (item.TimeInAt == null || log.TimeInAt == item.TimeInAt) &&
+                    (item.TimeInMobile == null || log.TimeInMobile == item.TimeInMobile) &&
+                    (item.TimeInImage == null || log.TimeInImage == item.TimeInImage);
+
+                var groupedBySid = dto.GroupBy(x => x.sid!.Value);
+
+                foreach (var group in groupedBySid)
+                {
+                    var sid = group.Key;
+
+                    if (!employees.TryGetValue(sid, out var employeeData))
+                    {
+                        skipped.Add($"Skipped {group.Count()} entries — no employee found for sid {sid}.");
+                        continue;
+                    }
+
+                    if (employeeData.IsActive == false)
+                    {
+                        skipped.Add($"Skipped {group.Count()} entries — employee {employeeData.EmployeeCode} is deactivated.");
+                        continue;
+                    }
+
+                    var existingLogs = existingLogsBySid.TryGetValue(sid, out var logs) ? logs : new List<AttendanceLog>();
+
+                    var existingByDate = existingLogs
+                        .Where(x => x.TimeInAt.HasValue || x.TimeInMobile.HasValue || x.TimeInImage.HasValue)
+                        .GroupBy(x => (x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)!.Value.Date)
+                        .ToDictionary(g => g.Key, g => g.First());
+
+                    AttendanceLog? openLog = existingLogs
+                        .Where(x => x.TimeOutAt == null && x.TimeOutMobile == null && x.TimeOutImage == null)
+                        .OrderByDescending(x => x.TimeInAt ?? x.TimeInMobile ?? x.TimeInImage)
+                        .FirstOrDefault();
+
+                    // Sort by the timestamp that matches each item's actual action moment, not just whichever field is populated —
+                    // otherwise a TimeOut item that resends its original TimeIn timestamp would sort by the wrong time.
+                    var orderedDto = group
+                        .Select(item => new
+                        {
+                            Item = item,
+                            Ts = (!string.IsNullOrWhiteSpace(item.Action) && item.Action == "TimeOut")
+                                ? (item.TimeOutAt ?? item.TimeOutMobile ?? item.TimeOutImage ?? item.TimeInAt ?? item.TimeInMobile ?? item.TimeInImage)
+                                : (item.TimeInAt ?? item.TimeInMobile ?? item.TimeInImage ?? item.TimeOutAt ?? item.TimeOutMobile ?? item.TimeOutImage)
+                        })
+                        .OrderBy(x => x.Ts)
+                        .Select(x => x.Item)
+                        .ToList();
+
+                    foreach (var item in orderedDto)
+                    {
+                        bool hasTimeIn = item.TimeInAt != null || item.TimeInMobile != null || item.TimeInImage != null;
+                        bool hasTimeOut = item.TimeOutAt != null || item.TimeOutMobile != null || item.TimeOutImage != null;
+
+                        if (!hasTimeIn && !hasTimeOut)
+                        {
+                            skipped.Add($"Skipped one entry for {employeeData.EmployeeCode} — no TimeIn or TimeOut timestamp provided.");
+                            continue;
+                        }
+
+                        // Explicit Action takes priority (same contract as MarkAttendanceTablet).
+                        // Falls back to field-presence inference if Action isn't sent.
+                        string action = !string.IsNullOrWhiteSpace(item.Action)
+                            ? item.Action
+                            : (hasTimeOut && !hasTimeIn ? "TimeOut" : "TimeIn");
+
+                        if (action == "TimeOut")
+                        {
+                            if (openLog == null || !TimeInMatches(openLog, item))
+                            {
+                                skipped.Add($"Skipped a TimeOut entry for {employeeData.EmployeeCode} — no matching open session found to check out from.");
+                                continue;
+                            }
+
+                            if (string.IsNullOrEmpty(item.TimeOutLat) || string.IsNullOrEmpty(item.TimeOutLon) ||
+                                string.IsNullOrEmpty(item.TimeOutLocationName) || item.AttendanceOutImage == null)
+                            {
+                                skipped.Add($"Skipped a TimeOut entry for {employeeData.EmployeeCode} — TimeOut location/image fields missing.");
+                                continue;
+                            }
+
+                            openLog.AttendanceOutLat = item.TimeOutLat;
+                            openLog.AttendanceOutLon = item.TimeOutLon;
+                            openLog.TimeOutAt = item.TimeOutAt;
+                            openLog.TimeOutMobile = item.TimeOutMobile;
+                            openLog.TimeOutImage = item.TimeOutImage;
+                            openLog.TimeOutLocationName = item.TimeOutLocationName;
+                            openLog.TimeOutBy = "Attendance Manager";
+                            openLog.TimeOutType = item.TimeOutType;
+                            openLog.AttendanceStatusId = 2;
+                            openLog.AttendanceOutImagePath = item.AttendanceOutImage != null
+                                ? await UploadDoc.UploadEmployeeAttendaceImage(item.AttendanceOutImage, employeeData.EmployeeCode)
+                                : "No image provided";
+
+                            updatedCount++;
+                            openLog = null;
+                        }
+                        else // action == "TimeIn" — may also carry TimeOut fields for a fully-offline complete session
+                        {
+                            var date = (item.TimeInAt ?? item.TimeInMobile ?? item.TimeInImage)!.Value.Date;
+
+                            if (existingByDate.ContainsKey(date))
+                            {
+                                skipped.Add($"Skipped {employeeData.EmployeeCode} {date:yyyy-MM-dd} — attendance already marked for that date.");
+                                continue;
+                            }
+
+                            if (openLog != null)
+                            {
+                                var openDate = (openLog.TimeInAt ?? openLog.TimeInMobile ?? openLog.TimeInImage)!.Value;
+                                skipped.Add($"Skipped TimeIn for {employeeData.EmployeeCode} {date:yyyy-MM-dd} — session opened {openDate:yyyy-MM-dd} is still unclosed.");
+                                continue;
+                            }
+
+                            if (string.IsNullOrEmpty(item.TimeInLat) || string.IsNullOrEmpty(item.TimeInLon) ||
+                                string.IsNullOrEmpty(item.TimeInLocationName) || item.AttendanceInImage == null)
+                            {
+                                skipped.Add($"Skipped {employeeData.EmployeeCode} {date:yyyy-MM-dd} — TimeIn location/image fields missing.");
+                                continue;
+                            }
+
+                            if (hasTimeOut && (string.IsNullOrEmpty(item.TimeOutLat) || string.IsNullOrEmpty(item.TimeOutLon) ||
+                                string.IsNullOrEmpty(item.TimeOutLocationName) || item.AttendanceOutImage == null))
+                            {
+                                skipped.Add($"Skipped {employeeData.EmployeeCode} {date:yyyy-MM-dd} — entry has TimeOut timestamp but is missing TimeOut location/image fields.");
+                                continue;
+                            }
+
+                            var log = new AttendanceLog
+                            {
+                                AttendanceDate = DateOnly.FromDateTime(date),
+                                AttendanceInLat = item.TimeInLat,
+                                AttendanceInLon = item.TimeInLon,
+                                TimeInAt = item.TimeInAt,
+                                TimeInMobile = item.TimeInMobile,
+                                TimeInImage = item.TimeInImage,
+                                TimeInLocationName = item.TimeInLocationName,
+                                TimeInBy = "Attendance Manager",
+                                TimeInType = item.TimeInType,
+                                AttendanceInImagePath = item.AttendanceInImage != null
+                                    ? await UploadDoc.UploadEmployeeAttendaceImage(item.AttendanceInImage, employeeData.EmployeeCode)
+                                    : "No image provided",
+                                AttendanceStatusId = hasTimeOut ? 2 : 1,
+                                EmployeeId = sid,
+                            };
+
+                            if (hasTimeOut)
+                            {
+                                log.AttendanceOutLat = item.TimeOutLat;
+                                log.AttendanceOutLon = item.TimeOutLon;
+                                log.TimeOutAt = item.TimeOutAt;
+                                log.TimeOutMobile = item.TimeOutMobile;
+                                log.TimeOutImage = item.TimeOutImage;
+                                log.TimeOutLocationName = item.TimeOutLocationName;
+                                log.TimeOutBy = "Attendance Manager";
+                                log.TimeOutType = item.TimeOutType;
+                                log.AttendanceOutImagePath = item.AttendanceOutImage != null
+                                    ? await UploadDoc.UploadEmployeeAttendaceImage(item.AttendanceOutImage, employeeData.EmployeeCode)
+                                    : "No image provided";
+                            }
+
+                            await db.AttendanceLogs.AddAsync(log);
+                            existingByDate[date] = log;
+                            openLog = hasTimeOut ? null : log;
+                            newCount++;
+                        }
+                    }
+                }
+
+                if (newCount == 0 && updatedCount == 0)
+                    return Json(new { statusCode = 200, message = "No new attendance data to sync.", skipped });
+
+                await db.SaveChangesAsync();
+                await db.Database.CommitTransactionAsync();
+
+                return Json(new
+                {
+                    statusCode = 200,
+                    message = $"Synced {newCount} new and updated {updatedCount} existing records successfully.",
+                    skipped
+                });
+            }
+            catch (Exception ex)
+            {
+                await db.Database.RollbackTransactionAsync();
+                return BadRequest(new { statusCode = 500, message = ex.Message });
+            }
+        }
     }
 }
