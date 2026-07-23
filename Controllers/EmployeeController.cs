@@ -440,6 +440,15 @@ namespace PPFAttendanceApi.Controllers
                                 x.PaymentTypeId,
                                 x.RoleId,
                                 x.Role.RoleName,
+                                File = x.EmployeeFiles
+                                .Select(f => new FileDto
+                                {
+                                    FileId = f.EmployeeFileId,
+                                    FilePath = $"/images/employee/{x.EmployeeCode}/{f.FilePath}",
+                                    Extension = f.Extension,
+                                    Sid = x.EmployeeId,
+                                    ActiveStatus = x.IsActive
+                                }).ToList(),
                                 PaymentType = x.PaymentType.Type,
                                 MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),
                                 Department = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).First().Department.DepartmentName,
