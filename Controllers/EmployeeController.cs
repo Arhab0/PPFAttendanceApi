@@ -332,13 +332,14 @@ namespace PPFAttendanceApi.Controllers
                                     l.LocationName,
                                     l.Radius
                                 }).ToList(),
-                                File = x.EmployeeFiles
+                                File = x.EmployeeFiles.Where(x=>x.IsActive == true)
                                 .Select(f => new FileDto
                                 {
                                     FileId = f.EmployeeFileId,
                                     FilePath = $"/images/employee/{x.EmployeeCode}/{f.FilePath}",
                                     Extension = f.Extension,
-                                    Sid = x.EmployeeId
+                                    Sid = x.EmployeeId,
+                                    ActiveStatus = x.IsActive
                                 }).FirstOrDefault(),
                                 IsFaceRegistered = x.EmployeeFiles.Any()
                             })

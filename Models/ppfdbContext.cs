@@ -455,6 +455,7 @@ public partial class ppfdbContext : DbContext
                 .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("file_path");
+            entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.UpdatedAt)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("updated_at");

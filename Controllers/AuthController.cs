@@ -226,7 +226,8 @@ namespace PPFAttendanceApi.Controllers
                                     FileId = f.EmployeeFileId,
                                     FilePath = $"/images/employee/{x.EmployeeCode}/{f.FilePath}",
                                     Extension = f.Extension,
-                                    Sid = x.EmployeeId
+                                    Sid = x.EmployeeId,
+                                    ActiveStatus = x.IsActive,
                                 }).FirstOrDefault(),
 
                                 Locations_ = x.Locations.Select(l => new UserLocationDto()
@@ -302,7 +303,8 @@ namespace PPFAttendanceApi.Controllers
                                     FileId = f.EmployeeFileId,
                                     FilePath = $"/images/employee/{x.EmployeeCode}/{f.FilePath}",
                                     Extension = f.Extension,
-                                    Sid = x.EmployeeId
+                                    Sid = x.EmployeeId,
+                                    ActiveStatus = x.IsActive,
                                 }).FirstOrDefault(),
 
                             attendance = att.TryGetValue(x.EmployeeId, out var logs)
@@ -442,35 +444,29 @@ namespace PPFAttendanceApi.Controllers
                     return BadRequest(new { statusCode = 400, message = "Invalid file format. Only .mp4 files are not allowed." });
                 }
 
-                FileDto _ = new();
-
-                var check = await db.EmployeeFiles.Where(x => x.EmployeeId == employeeId).FirstOrDefaultAsync();
-                string employeeCode = await db.Employees.Where(x => x.EmployeeId == employeeId).Select(x => x.EmployeeCode).FirstOrDefaultAsync();
-
-                if (check == null)
+                var check = await db.EmployeeFiles.Where(x => x.EmployeeId == employeeId).AnyAsync();
+                if (check)
                 {
-                    EmployeeFile file_ = new();
-                    file_.FilePath = await UploadDoc.UploadEmployeeImage(file, employeeCode);
-                    file_.Extension = Path.GetExtension(file.FileName);
-                    file_.CreatedAt = DateTime.Now;
-                    file_.EmployeeId = employeeId;
-
-                    await db.EmployeeFiles.AddAsync(file_);
-                    await db.SaveChangesAsync();
-
-                    _.FileId = file_.EmployeeFileId;
-                    _.FilePath = $"/images/employee/{employeeCode}/{file_.FilePath}";
-                    _.Extension = file_.Extension;
-
-                    return Json(_);
+                    await db.EmployeeFiles.Where(x => x.EmployeeId == employeeId).ExecuteUpdateAsync(e => e.SetProperty(p => p.IsActive, false));
                 }
 
-                check.FilePath = await UploadDoc.UploadEmployeeImage(file, employeeCode);
+                FileDto _ = new();
+                string employeeCode = await db.Employees.Where(x => x.EmployeeId == employeeId).Select(x => x.EmployeeCode).FirstOrDefaultAsync();
+
+                EmployeeFile file_ = new();
+                file_.FilePath = await UploadDoc.UploadEmployeeImage(file, employeeCode);
+                file_.Extension = Path.GetExtension(file.FileName);
+                file_.CreatedAt = DateTime.Now;
+                file_.EmployeeId = employeeId;
+                file_.IsActive = true;
+
+                await db.EmployeeFiles.AddAsync(file_);
                 await db.SaveChangesAsync();
 
-                _.FileId = check.EmployeeFileId;
-                _.FilePath = $"/images/employee/{employeeCode}/{check.FilePath}";
-                _.Extension = check.Extension;
+                _.FileId = file_.EmployeeFileId;
+                _.FilePath = $"/images/employee/{employeeCode}/{file_.FilePath}";
+                _.Extension = file_.Extension;
+
 
                 return Json(_);
             }
