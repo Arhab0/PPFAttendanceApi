@@ -447,7 +447,8 @@ namespace PPFAttendanceApi.Controllers
                                     FilePath = $"/images/employee/{x.EmployeeCode}/{f.FilePath}",
                                     Extension = f.Extension,
                                     Sid = x.EmployeeId,
-                                    ActiveStatus = x.IsActive
+                                    ActiveStatus = x.IsActive,
+                                    UpdateAt = x.UpdatedAt
                                 }).ToList(),
                                 PaymentType = x.PaymentType.Type,
                                 MainBranch = x.EmpUserBrDeptMappings.Where(x => x.IsPrimaryBranch == true).Select(x => x.Branch.BranchName).FirstOrDefault(),

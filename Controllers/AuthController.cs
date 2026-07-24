@@ -112,7 +112,7 @@ namespace PPFAttendanceApi.Controllers
                     obj.RoleId = data_2.RoleId;
                     obj.RoleName = data_2.Role.RoleName;
 
-                    var uFile = data_2.EmployeeFiles?.FirstOrDefault();
+                    var uFile = data_2.EmployeeFiles?.Where(x=>x.IsActive == true).FirstOrDefault();
                     if (data_2.RoleId == 2)
                     {
                         obj.File = uFile == null ? null : new()
@@ -220,7 +220,7 @@ namespace PPFAttendanceApi.Controllers
                                 EmployeeEmail = x.EmployeeEmail,
                                 EmployeeCode = x.EmployeeCode,
                                 MobileNumber = x.MobileNumber,
-                                File = x.EmployeeFiles
+                                File = x.EmployeeFiles.Where(x=>x.IsActive == true)
                                 .Select(f => new FileDto
                                 {
                                     FileId = f.EmployeeFileId,
@@ -297,7 +297,7 @@ namespace PPFAttendanceApi.Controllers
                             EmployeeEmail = x.EmployeeEmail,
                             EmployeeCode = x.EmployeeCode,
                             MobileNumber = x.MobileNumber,
-                            File = x.EmployeeFiles
+                            File = x.EmployeeFiles.Where(x=>x.IsActive == true)
                                 .Select(f => new FileDto
                                 {
                                     FileId = f.EmployeeFileId,

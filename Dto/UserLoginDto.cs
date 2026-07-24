@@ -19,6 +19,7 @@ namespace PPFAttendanceApi.Dto
         public string FilePath { get; set; }
         public string Extension { get; set; }
         public bool ActiveStatus { get; set; }
+        public DateTime? UpdateAt { get; set; }
     }
     public class UserLocationDto
     {
