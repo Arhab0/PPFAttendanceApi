@@ -22,4 +22,6 @@ public partial class EmployeeFile
     public bool IsActive { get; set; }
 
     public virtual Employee Employee { get; set; }
+
+    public virtual ICollection<UncropEmployeeFile> UncropEmployeeFiles { get; set; } = new List<UncropEmployeeFile>();
 }

@@ -429,17 +429,17 @@ namespace PPFAttendanceApi.Controllers
         }
 
         [HttpPost("RegisterPhotoFromHR")]
-        public async Task<IActionResult> RegisterPhotoFromHR(IFormFile file, int employeeId)
+        public async Task<IActionResult> RegisterPhotoFromHR(IFormFile file, IFormFile uncrop, int employeeId)
         {
             try
             {
 
-                if (file == null)
+                if (file == null || uncrop == null)
                 {
-                    return BadRequest(new { statusCode = 400, message = "No file uploaded." });
+                    return BadRequest(new { statusCode = 400, message = "file not uploaded." });
                 }
 
-                if (string.Equals(Path.GetExtension(file.FileName), ".mp4", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Path.GetExtension(file.FileName), ".mp4", StringComparison.OrdinalIgnoreCase) || string.Equals(Path.GetExtension(uncrop.FileName), ".mp4", StringComparison.OrdinalIgnoreCase))
                 {
                     return BadRequest(new { statusCode = 400, message = "Invalid file format. Only .mp4 files are not allowed." });
                 }
@@ -447,7 +447,9 @@ namespace PPFAttendanceApi.Controllers
                 var check = await db.EmployeeFiles.Where(x => x.EmployeeId == employeeId).AnyAsync();
                 if (check)
                 {
-                    await db.EmployeeFiles.Where(x => x.EmployeeId == employeeId).ExecuteUpdateAsync(e => e.SetProperty(p => p.IsActive, false));
+                    var __ = await db.EmployeeFiles.Where(x => x.EmployeeId == employeeId && x.IsActive == true).FirstOrDefaultAsync();
+                    __.IsActive = false;
+                    __.UpdatedAt = DateTime.Now;
                 }
 
                 FileDto _ = new();
@@ -460,7 +462,17 @@ namespace PPFAttendanceApi.Controllers
                 file_.EmployeeId = employeeId;
                 file_.IsActive = true;
 
+
                 await db.EmployeeFiles.AddAsync(file_);
+                await db.SaveChangesAsync();
+
+                UncropEmployeeFile file__ = new();
+                file__.FilePath = await UploadDoc.UploadUnCropEmployeeImage(uncrop, employeeCode);
+                file__.Extension = Path.GetExtension(uncrop.FileName);
+                file__.CreatedAt = DateTime.Now;
+                file__.CropPictureId = file_.EmployeeFileId;
+
+                await db.UncropEmployeeFiles.AddAsync(file__);
                 await db.SaveChangesAsync();
 
                 _.FileId = file_.EmployeeFileId;

@@ -47,6 +47,8 @@ public partial class ppfdbContext : DbContext
 
     public virtual DbSet<ShiftType> ShiftTypes { get; set; }
 
+    public virtual DbSet<UncropEmployeeFile> UncropEmployeeFiles { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserFile> UserFiles { get; set; }
@@ -654,6 +656,33 @@ public partial class ppfdbContext : DbContext
                 .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("type");
+        });
+
+        modelBuilder.Entity<UncropEmployeeFile>(entity =>
+        {
+            entity.HasKey(e => e.UncropEmployeeFileId).HasName("uncrop_employee_file_pkey");
+
+            entity.ToTable("uncrop_employee_file", "media");
+
+            entity.Property(e => e.UncropEmployeeFileId).HasColumnName("uncrop_employee_file_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CropPictureId).HasColumnName("crop_picture_id");
+            entity.Property(e => e.Extension)
+                .IsRequired()
+                .HasColumnType("character varying")
+                .HasColumnName("extension");
+            entity.Property(e => e.FilePath)
+                .IsRequired()
+                .HasColumnType("character varying")
+                .HasColumnName("file_path");
+
+            entity.HasOne(d => d.CropPicture).WithMany(p => p.UncropEmployeeFiles)
+                .HasForeignKey(d => d.CropPictureId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("uncrop_crop_key");
         });
 
         modelBuilder.Entity<User>(entity =>

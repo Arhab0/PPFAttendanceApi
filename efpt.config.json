@@ -71,6 +71,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "media.uncrop_employee_file",
+         "ObjectType": 0
+      },
+      {
          "Name": "media.user_file",
          "ObjectType": 0
       },

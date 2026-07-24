@@ -13,6 +13,11 @@
         {
             return await UploadFile(ufile, Path.Combine("images", "employee", employeeCode));
         }
+        // Employee Uncropt
+        public static async Task<string> UploadUnCropEmployeeImage(IFormFile ufile, string employeeCode)
+        {
+            return await UploadFile(ufile, Path.Combine("images", "employee", employeeCode, "uncrop"));
+        }
 
         // Employee Attendance
         public static async Task<string> UploadEmployeeAttendaceImage(IFormFile ufile, string employeeCode)
